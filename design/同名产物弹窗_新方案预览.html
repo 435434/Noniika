@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>同名产物弹窗 · 新方案预览（未改源文件）</title>
+<style>
+  :root{
+    --bg:#232323; --panel:#2b2b2b; --panel2:#343434; --line:#3d3d3d;
+    --fg:#d8d8d8; --fg-dim:#9c9c9c; --fg-hint:#7e7e7e;
+    --accent:#4a9eff; --ok:#7ddba3; --warn:#f0c869; --err:#f09a9a;
+    --radius:6px;
+  }
+  *{box-sizing:border-box}
+  body{
+    margin:0;padding:22px;background:#1a1a1a;color:var(--fg);
+    font:12px/1.6 "Segoe UI","Microsoft YaHei",system-ui,sans-serif;
+  }
+  .doc{max-width:1080px;margin:0 auto}
+  .doctitle{font-size:15px;font-weight:500;color:#f0f0f0;margin:0 0 6px}
+  .docsub{font-size:12px;color:var(--fg-hint);line-height:1.7;margin:0 0 20px}
+  .docsub code{background:#2b2b2b;border:1px solid var(--line);border-radius:3px;padding:0 4px;color:#b9b9b9}
+  .note{background:#3a3117;border:1px solid #5a4416;color:var(--warn);
+    border-radius:4px;padding:7px 9px;font-size:11px;line-height:1.6;margin:0 0 20px}
+
+  .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(340px,1fr));gap:22px;align-items:start}
+  .cell{min-width:0}
+  .caption{font-size:11px;color:var(--fg-hint);margin-bottom:7px;letter-spacing:.2px}
+
+  .askBox{background:var(--panel2);border:1px solid var(--line);border-radius:var(--radius);
+    padding:12px 13px 11px}
+  .askTitle{font-size:13px;color:var(--fg);margin-bottom:7px}
+  .askBody{font-size:12px;color:var(--fg-dim);line-height:1.65;word-break:break-all}
+  .askBtns{display:flex;gap:6px;margin-top:10px;flex-wrap:wrap}
+  .askBtns button{
+    flex:1 1 auto;font:inherit;font-size:11px;padding:4px 8px;border-radius:4px;
+    border:1px solid var(--line);background:var(--panel2);color:var(--fg);cursor:pointer;
+  }
+  .askBtns button:hover:not(:disabled){border-color:#585858}
+  .askBtns button:disabled{opacity:.45;cursor:default}
+  .askBtns button.primary{background:#2f5f9e;border-color:#3b76c2;color:#eaf2ff;font-weight:500}
+  .askBtns button.primary:hover:not(:disabled){background:#356bb0;border-color:#4a86d2}
+  .askBox .hint{margin-top:8px;padding-top:7px;border-top:1px solid var(--line);
+    font-size:11px;color:var(--fg-hint);line-height:1.6;word-break:break-all}
+  .askBox .hint b{font-weight:500;color:#a8a8a8}
+
+  .flow{margin-top:12px;background:var(--panel);border:1px solid #383838;border-radius:var(--radius);
+    padding:9px 11px;display:none}
+  .flow.on{display:block}
+  .flowTitle{font-size:11px;color:#8f8f8f;margin-bottom:7px;letter-spacing:.3px}
+  .flow ol{margin:0;padding-left:19px}
+  .flow li{font-size:11px;line-height:1.75;color:var(--fg-dim);word-break:break-all}
+  .flow li b{font-weight:500;color:var(--fg)}
+  .flow li.skip{color:#6b6b6b;text-decoration:line-through}
+  .flow .cost{display:inline-block;font-size:10px;padding:0 5px;border-radius:8px;
+    background:#3a3a3a;color:#9c9c9c;margin-left:4px}
+  .flow .cost.up{background:#5a4416;color:var(--warn)}
+  .flow .cost.free{background:#1f4d33;color:var(--ok)}
+  .flow .tag{font-size:10px;color:var(--fg-hint)}
+
+  .sec{margin-top:30px;font-size:13px;color:#b5b5b5;font-weight:500}
+  table{border-collapse:collapse;width:100%;margin-top:9px;font-size:11px}
+  th,td{border:1px solid var(--line);padding:5px 7px;text-align:left;vertical-align:top;line-height:1.6}
+  th{background:#2b2b2b;color:#8f8f8f;font-weight:400}
+  td b{font-weight:500;color:var(--fg)}
+  .mono{font-family:Consolas,"Courier New",monospace}
+</style>
+</head>
+<body>
+<div class="doc">
+
+  <h1 class="doctitle">「输出目录里已有同名产物」弹窗 · 新方案预览</h1>
+  <p class="docsub">
+    这是<b style="font-weight:500">预览稿</b>，源文件（<code>cep/index.html</code>、<code>cep/js/main.js</code>）一行未改。<br>
+    改动内容：第一个选项 → <b style="font-weight:500">用已有音频直接识别</b>；第二个选项 → <b style="font-weight:500">覆盖旧产物</b>。<br>
+    点按钮可以看到<b style="font-weight:500">那条路具体会执行哪些步骤</b>——这是本稿真正要跟你对齐的东西（样式是次要的）。
+  </p>
+  <div class="note">
+    注意：原来第二个选项「另存（自动改名）」按你的说法被挤掉了。若还想保留，我会把它加成第四个按钮或降级成下方小字链接——等你一句话。
+  </div>
+  <div class="note" style="background:#1f4d33;border-color:#2f6b47;color:#7ddba3">
+    ✅ 已定案并实装（v0.9.0）—— 采用的是<b style="font-weight:500">状态三</b>那套。
+    相比本稿的两处差异：① 按钮二缩成「覆盖旧产物」（去掉「（重新分离）」，否则在窄面板里会折行）；
+    ② 「另存（自动改名）」已撤掉。本稿保留作决策留痕，实际界面请看面板本身。
+  </div>
+
+  <div class="grid">
+
+    <div class="cell">
+      <div class="caption">状态一 · 上一轮留下了人声音频（可复用）</div>
+      <div class="askBox">
+        <div class="askTitle">输出目录里已有同名产物</div>
+        <div class="askBody">输出目录里已有「l_v0_20260614132354」的产物：l_v0_20260614132354.json、l_v0_20260614132354_人声.wav。这一轮要怎么处理？</div>
+        <div class="askBtns" data-scene="a">
+          <button class="primary" data-pick="reuse">用已有音频识别</button>
+          <button data-pick="overwrite">覆盖旧产物</button>
+          <button data-pick="cancel">取消</button>
+        </div>
+        <div class="hint">
+          <b>用已有音频识别</b>：跳过导出与分离，直接拿上一轮的「l_v0_20260614132354_人声.wav」去识别 —— 省下一次重分离（几分钟 CPU），但仍会上传云端一次。旧的 .json 会被本轮结果替换。<br>
+          <b>覆盖旧产物</b>：从头重跑（重新导出 + 重新分离 + 重新识别），文件名不变，旧文件被替换 —— 已落轨的人声图层引用的就是那个文件，它的声音会跟着变成这一轮的。<br>
+          <b>取消</b>：什么都不做、不上传云端，结束本次任务。
+        </div>
+      </div>
+      <div class="flow" data-flow="a"></div>
+    </div>
+
+    <div class="cell">
+      <div class="caption">状态二 · 上一轮只有识别结果、没有音频（无法复用）</div>
+      <div class="askBox">
+        <div class="askTitle">输出目录里已有同名产物</div>
+        <div class="askBody">输出目录里已有「l_v0_20260614132354」的产物：l_v0_20260614132354.json。这一轮要怎么处理？</div>
+        <div class="askBtns" data-scene="b">
+          <button class="primary" data-pick="reuse" disabled>用已有音频识别</button>
+          <button data-pick="overwrite">覆盖旧产物</button>
+          <button data-pick="cancel">取消</button>
+        </div>
+        <div class="hint">
+          <b>用已有音频识别</b>：<span style="color:var(--warn)">不可用</span> —— 上一轮只留下了识别结果（.json），没留下音频文件，没有可复用的输入。<br>
+          <b>覆盖旧产物</b>：从头重跑（重新导出 + 重新分离 + 重新识别），文件名不变，旧文件被替换 —— 已落轨的人声图层引用的就是那个文件，它的声音会跟着变成这一轮的。<br>
+          <b>取消</b>：什么都不做、不上传云端，结束本次任务。
+        </div>
+      </div>
+      <div class="flow" data-flow="b"></div>
+    </div>
+
+    <div class="cell">
+      <div class="caption">状态三 · 点的是「分离人声」按钮（那条路本来就不识别）</div>
+      <div class="askBox">
+        <div class="askTitle">输出目录里已有同名产物</div>
+        <div class="askBody">输出目录里已有「l_v0_20260614132354」的产物：l_v0_20260614132354.json、l_v0_20260614132354_人声.wav。这一轮要怎么处理？</div>
+        <div class="askBtns" data-scene="c">
+          <button class="primary" data-pick="reuse">跳过分离，用已有的人声</button>
+          <button data-pick="overwrite">覆盖旧产物（重新分离）</button>
+          <button data-pick="cancel">取消</button>
+        </div>
+        <div class="hint">
+          这条路的按钮只做分离、不识别，所以第一个选项改成「<b>跳过分离，用已有的人声</b>」—— 直接把上一轮分离好的人声落轨，省掉几分钟 CPU 运算。<br>
+          <b>覆盖旧产物（重新分离）</b>：重新导出音频、重新跑分离（换模型时用这个），文件名不变。<br>
+          <b>取消</b>：什么都不做、结束本次任务。
+        </div>
+      </div>
+      <div class="flow" data-flow="c"></div>
+    </div>
+
+  </div>
+
+  <div class="sec">三个选项各自要花什么代价</div>
+  <table>
+    <tr><th style="width:20%">选项</th><th style="width:26%">会做什么</th><th style="width:20%">省掉了什么</th><th style="width:34%">代价 / 副作用</th></tr>
+    <tr>
+      <td><b>用已有音频识别</b></td>
+      <td>复用 <span class="mono">_人声分离/&lt;名&gt;_人声.wav</span>，只做识别 + 建层</td>
+      <td>重新导出音频、重新分离人声</td>
+      <td>仍会上传云端识别 1 次；<span class="mono">&lt;名&gt;.json / .srt / .txt</span> 被本轮结果替换（人声文件本身不动）</td>
+    </tr>
+    <tr>
+      <td><b>覆盖旧产物</b></td>
+      <td>重新导出 → 重新分离 → 重新识别 → 建层</td>
+      <td>无</td>
+      <td>旧文件被替换；<b>已落轨的人声图层引用的是那个路径</b>，声音会跟着变成这一轮的</td>
+    </tr>
+    <tr>
+      <td><b>取消</b></td>
+      <td>什么都不做</td>
+      <td>全部</td>
+      <td>不上传云端、不消耗识别额度、不改任何文件</td>
+    </tr>
+  </table>
+
+</div>
+
+<script>
+var FLOWS = {
+  a: {
+    reuse: {
+      t: "「用已有音频识别」会走这条路",
+      steps: [
+        ["读取选中素材、算出处理区间", ""],
+        ["<b>跳过</b>按区间导出音频", "跳过"],
+        ["<b>跳过</b>人声分离（几分钟 CPU）", "跳过"],
+        ["把上一轮的 <span class='mono'>l_v0_20260614132354_人声.wav</span> 当识别输入", ""],
+        ["上传云端识别（<span class='cost up'>消耗 1 次额度</span>）", ""],
+        ["写出 <span class='mono'>.json / .srt / .txt</span>（同名，替换旧结果）", ""],
+        ["在 AE 里创建字幕图层", ""]
+      ]
+    },
+    overwrite: {
+      t: "「覆盖旧产物」会走这条路",
+      steps: [
+        ["读取选中素材、算出处理区间", ""],
+        ["按区间导出音频", ""],
+        ["人声分离（<span class='cost'>本机 CPU，几分钟</span>）", ""],
+        ["<span class='mono'>_人声分离/&lt;名&gt;_人声.wav</span> 被新分离结果替换", ""],
+        ["上传云端识别（<span class='cost up'>消耗 1 次额度</span>）", ""],
+        ["写出 <span class='mono'>.json / .srt / .txt</span>", ""],
+        ["在 AE 里创建字幕图层 <span class='tag'>已落轨的旧人声图层声音会跟着变</span>", ""]
+      ]
+    },
+    cancel: {
+      t: "「取消」会走这条路",
+      steps: [
+        ["到此为止：不导出、不分离、不上传、不写文件", "跳过"],
+        ["字幕与人声都没有任何改动", "跳过"]
+      ]
+    }
+  },
+  b: {
+    overwrite: {
+      t: "「覆盖旧产物」会走这条路（复用不可用时的唯一出路）",
+      steps: [
+        ["读取选中素材、算出处理区间", ""],
+        ["按区间导出音频", ""],
+        ["人声分离（本轮会重新生成人声音频）", ""],
+        ["上传云端识别（<span class='cost up'>消耗 1 次额度</span>）", ""],
+        ["写出 <span class='mono'>.json / .srt / .txt</span>，替换旧的 .json", ""],
+        ["在 AE 里创建字幕图层", ""]
+      ]
+    },
+    cancel: { t: "「取消」会走这条路", steps: [["什么都不做，结束本次任务", "跳过"]] }
+  },
+  c: {
+    reuse: {
+      t: "「跳过分离，用已有的人声」会走这条路",
+      steps: [
+        ["读取选中素材、算出处理区间", ""],
+        ["<b>跳过</b>重新导出音频", "跳过"],
+        ["<b>跳过</b>重新分离", "跳过"],
+        ["直接拿 <span class='mono'>l_v0_20260614132354_人声.wav</span> 落到时间线", ""],
+        ["<span class='cost free'>全程不上传、不消耗额度</span>", ""],
+        ["（可选）面板会再问一句：要不要接着识别成字幕", ""]
+      ]
+    },
+    overwrite: {
+      t: "「覆盖旧产物（重新分离）」会走这条路",
+      steps: [
+        ["读取选中素材、算出处理区间", ""],
+        ["按区间导出音频", ""],
+        ["重新跑人声分离（<span class='cost'>本机 CPU，几分钟</span>）", ""],
+        ["<span class='mono'>l_v0_20260614132354_人声.wav</span> 被替换", ""],
+        ["按源素材类型落轨（视频源自动静音原声 / 音频源问你替换还是放下方）", ""],
+        ["全程不上传、不消耗额度", ""]
+      ]
+    },
+    cancel: { t: "「取消」会走这条路", steps: [["什么都不做，结束本次任务", "跳过"]] }
+  }
+};
+
+document.querySelectorAll(".askBtns").forEach(function (grp) {
+  var scene = grp.getAttribute("data-scene");
+  var box = document.querySelector('.flow[data-flow="' + scene + '"]');
+  grp.querySelectorAll("button").forEach(function (btn) {
+    btn.addEventListener("click", function () {
+      var pick = btn.getAttribute("data-pick");
+      var data = (FLOWS[scene] || {})[pick];
+      if (!data) { box.classList.remove("on"); box.innerHTML = ""; return; }
+      var html = '<div class="flowTitle">' + data.t + "</div><ol>";
+      data.steps.forEach(function (s) {
+        html += '<li' + (s[1] === "跳过" ? ' class="skip"' : "") + ">" + s[0] + "</li>";
+      });
+      box.innerHTML = html + "</ol>";
+      box.classList.add("on");
+    });
+  });
+});
+</script>
+</body>
+</html>

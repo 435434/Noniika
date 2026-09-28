@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>深色滚动条 + 深色密钥输入框 · 改前改后对照</title>
+<!-- 关键：引用的是即将装进面板的那一份真实样式，不是复刻 -->
+<link rel="stylesheet" href="../cep/css/style.css">
+<style>
+  /* 这个页面本身是"宿主"环境，用浅色底，好把深色面板衬托出来 */
+  body { background: #e9e9ec; padding: 18px; }
+  .doctitle { font: 500 15px/1.5 "Segoe UI","Microsoft YaHei",system-ui,sans-serif; color: #232323; margin: 0 0 4px; }
+  .docsub { font: 12px/1.7 "Segoe UI","Microsoft YaHei",system-ui,sans-serif; color: #5f5f68; margin: 0 0 16px; }
+  .stage { display: flex; gap: 22px; align-items: flex-start; }
+  .col { min-width: 0; }
+  .cap { font: 500 12px/1.5 "Segoe UI","Microsoft YaHei",system-ui,sans-serif; color: #3a3a42; margin: 0 0 7px; }
+  .cap b { font-weight: 500; }
+  .win {
+    width: 340px; height: 470px; overflow: scroll;   /* 强制显示滚动条，方便对照 */
+    background: var(--bg); border-radius: 6px; border: 1px solid #c9c9cf;
+  }
+  .inner { padding: 10px; }
+
+  /* ---- 右栏"改之前"：把本次新增的几条规则**反过来覆盖**，还原旧观感 ----
+     做法是原地抵消（而不是复制一份旧 CSS），这样两边内容天然一致。 */
+  .before { color-scheme: light; }                       /* 关掉深色原生渲染 */
+  .before input[type="password"] {                        /* 旧版没覆盖 password → 浏览器默认白底 */
+    background: #ffffff; color: #000000; border: 1px solid #767676;
+  }
+  .before ::-webkit-scrollbar { width: 15px; height: 15px; }   /* 旧版：系统浅色滚动条 */
+  .before ::-webkit-scrollbar-track { background: #f1f1f1; }
+  .before ::-webkit-scrollbar-thumb { background: #c1c1c1; border: 0; border-radius: 0; }
+  .before ::-webkit-scrollbar-thumb:hover { background: #c1c1c1; }
+  .before ::-webkit-scrollbar-corner { background: #f1f1f1; }
+</style>
+</head>
+<body>
+
+<h1 class="doctitle">深色滚动条 + 深色密钥输入框</h1>
+<p class="docsub">
+  左右栏用的是<b>同一份</b> <code>cep/css/style.css</code>，右栏只是把本次新增的几条规则原地抵消掉，用来还原旧观感。
+  注意看两个地方：① 右侧与日志框的滚动条；② 「API Key」输入框的底色。
+</p>
+
+<div class="stage">
+
+  <div class="col">
+    <p class="cap">改后（本次）</p>
+    <div class="win">
+      <div class="inner">
+        <section class="card">
+          <div class="card-title"><span>识别引擎</span></div>
+          <div class="row" style="margin-top:0"><label>API Key</label>
+            <input type="password" placeholder="粘贴服务商的密钥">
+          </div>
+          <div class="row"><label>模型</label>
+            <select><option>FunAudioLLM/SenseVoiceSmall</option></select>
+          </div>
+          <div class="actions fill" style="margin-top:6px">
+            <button class="small">测试密钥</button>
+            <button class="ghost small">去申请密钥</button>
+          </div>
+          <div class="hint">密钥只存在本机面板存档里，不会上传到别处。</div>
+        </section>
+
+        <section class="card">
+          <div class="card-title"><span>运行日志</span></div>
+          <div class="log">[8%] 转码为 16000Hz 单声道 WAV
+[15%] 上传并等待识别结果
+[88%] 识别完成：9 段
+[90%] 规整时间轴并标记可疑段
+[92%] 已去掉字幕里的标点符号
+[95%] 写出字幕文件
+[100%] 在 AE 中创建字幕图层
+完成：共 9 段字幕，72 字，语音覆盖 47.5%</div>
+        </section>
+
+        <section class="card">
+          <div class="card-title"><span>已创建的字幕图层</span></div>
+          <label class="chk"><input type="checkbox" checked> 识别完成后在 AE 中创建字幕图层</label>
+          <label class="chk"><input type="checkbox" checked> 去掉字幕里的标点符号</label>
+          <div class="hint">勾选后要重新生成一次字幕才生效。</div>
+        </section>
+
+        <section class="card">
+          <div class="card-title"><span>输出与日志</span></div>
+          <div class="row" style="margin-top:0"><label>输出目录</label>
+            <input type="text" placeholder="例如 D:\输出">
+          </div>
+          <div class="row"><label>署名</label><input type="text" value="作者：𝙁𝙖𝙙𝙚"></div>
+        </section>
+      </div>
+    </div>
+  </div>
+
+  <div class="col">
+    <p class="cap">改之前（<b>这就是你截图里看到的白条与白框</b>）</p>
+    <div class="win before">
+      <div class="inner"></div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+  var src = document.querySelector('.stage .col:first-child .inner');
+  document.querySelector('.before .inner').innerHTML = src.innerHTML;
+</script>
+</body>
+</html>

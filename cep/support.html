@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>支持 Noniika · AE 自动字幕</title>
+<!--
+  支持作者页（由面板 header 的 ♥ 按钮用系统浏览器打开）
+  ============================================================
+  · 本页随插件一起分发，放在扩展根目录：support.html
+  · 赞赏码图片请放在同目录的 assets/zanshang-code.png（缺图时本页会显示引导文案，不是破图）
+  · 刻意只用相对路径 + 内联样式：不引任何外部依赖，离线可看
+-->
+<style>
+  :root{
+    --bg:#232323; --panel:#2b2b2b; --panel2:#343434; --line:#3d3d3d;
+    --fg:#d8d8d8; --fg-dim:#9c9c9c; --fg-hint:#7e7e7e;
+    --accent:#4a9eff; --ok:#7ddba3; --warn:#f0c869; --heart:#ef7b8e;
+    --radius:8px;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0; padding:34px 18px 60px;
+    background:var(--bg); color:var(--fg);
+    font:14px/1.75 "Microsoft YaHei","PingFang SC",-apple-system,"Segoe UI",sans-serif;
+    -webkit-font-smoothing:antialiased;
+  }
+  .wrap{max-width:760px; margin:0 auto;}
+  .brand{
+    font-family:"Segoe UI Symbol","Cambria Math",serif;
+    font-size:22px; letter-spacing:.5px; color:#f2f2f2;
+  }
+  h1{margin:0 0 6px; font-size:20px; font-weight:500; letter-spacing:.3px;}
+  h2{margin:0 0 10px; font-size:14px; font-weight:500; color:#e8e8e8;}
+  .lead{margin:0 0 22px; color:var(--fg-dim);}
+  .lead b{color:#eaeaea; font-weight:500;}
+  .cards{display:grid; grid-template-columns:1fr 1fr; gap:14px;}
+  @media (max-width:700px){ .cards{grid-template-columns:1fr;} }
+  .card{
+    background:var(--panel); border:1px solid var(--line);
+    border-radius:var(--radius); padding:16px 16px 14px;
+  }
+  .card.note{margin-top:14px;}
+  .qrbox{
+    background:#1b1b1b; border:1px solid var(--line); border-radius:6px;
+    padding:12px; text-align:center; min-height:180px;
+    display:flex; align-items:center; justify-content:center;
+  }
+  .qrbox img{max-width:300px; width:100%; height:auto; display:block; border-radius:4px;}
+  .miss{display:none; color:var(--warn); font-size:12.5px; line-height:1.7; text-align:left; max-width:300px;}
+  code{
+    background:#1b1b1b; border:1px solid var(--line); border-radius:4px;
+    padding:1px 5px; font-family:Consolas,monospace; font-size:12.5px; color:#c9d6e4;
+    word-break:break-all;
+  }
+  .btn{
+    display:inline-block; margin:2px 0 8px; padding:9px 16px;
+    background:var(--accent); color:#0e1620; text-decoration:none;
+    border-radius:6px; font-weight:600; font-size:13.5px;
+  }
+  .btn:hover{background:#68b0ff;}
+  /* 爱发电这张卡：标题留在左上（与左边那张一致），正文与按钮在剩余空间里**居中** ——
+     右边那张卡的赞赏码很高，靠上排会显得左重右空，居中之后两块视觉重量才对得上 */
+  .card.afdian{ display:flex; flex-direction:column; }
+  .afBody{
+    flex:1 1 auto; display:flex; flex-direction:column;
+    align-items:center; justify-content:center; gap:12px; text-align:center;
+  }
+  .afBody p{ margin:0; color:var(--fg-dim); }
+  .afBody .btn{ margin:0; }
+  ul{margin:0; padding-left:20px;}
+  li{margin-bottom:8px;}
+  li b{color:#eaeaea; font-weight:500;}
+  footer{
+    margin-top:26px; padding-top:12px; border-top:1px solid var(--line);
+    font-size:12px; color:var(--fg-hint);
+  }
+  .heart{color:var(--heart);}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <h1><span class="heart">♥</span> 感谢你愿意支持 <span class="brand">𝙉𝙤𝙣𝙞𝙞𝙠𝙖</span></h1>
+  <p class="lead">
+    这个插件是<b>免费发放</b>的：功能完整，没有"付费才能用"的部分，也没有试用期或水印。<br>
+    下面两个入口只是"如果它确实帮你省了时间，可以请我喝杯咖啡"。
+  </p>
+
+  <div class="cards">
+    <section class="card">
+      <h2>① 微信赞赏</h2>
+      <div class="qrbox">
+        <img id="qr" src="assets/zanshang-code.png" alt="微信赞赏码">
+        <div class="miss" id="qrMissing">
+          赞赏码图片还没放进来。<br>
+          把微信「赞赏码」的截图存成 <code>assets/zanshang-code.png</code>
+          （放在本页面所在目录下），刷新本页即可显示。
+        </div>
+      </div>
+    </section>
+
+    <section class="card afdian">
+      <h2>② 爱发电</h2>
+      <div class="afBody">
+        <p>想留句话，从这里进：</p>
+        <a class="btn" href="https://afdian.com/a/Noniika007" target="_blank" rel="noopener">打开爱发电主页</a>
+      </div>
+    </section>
+  </div>
+
+  <section class="card note">
+    <h2>三句实话（先看，免得误会）</h2>
+    <ul>
+      <li><b>赞助不是购买。</b>它不换来任何额外权利，也不改变许可条款 —— 插件依然是免费使用。</li>
+      <li><b>不承诺技术支持。</b>我会尽力回复，但赞助不等于"随时答疑 / 远程帮你装环境"。</li>
+      <li><b>不赞助完全不影响使用。</b>功能一模一样，不会有隐藏限制、不会过期、不会有"增值版"门槛。</li>
+    </ul>
+  </section>
+
+  <footer>Noniika · AE 自动字幕 &nbsp;|&nbsp; 问题反馈方式见「安装说明.md」</footer>
+</div>
+
+<script>
+  // 缺图时给引导文案，而不是一个破图icon（分发包里如果忘了放图，用户也知道该怎么办）
+  (function () {
+    var img = document.getElementById("qr");
+    var miss = document.getElementById("qrMissing");
+    img.addEventListener("error", function () {
+      img.style.display = "none";
+      miss.style.display = "block";
+    });
+  })();
+</script>
+</body>
+</html>

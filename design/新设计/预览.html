@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>𝙉𝙤𝙣𝙞𝙞𝙠𝙖 · 全新 UI 评审台</title>
+<!--
+  评审外壳（不进面板）：iframe 里跑 design/新设计/index.html（全新深色 UI）。
+  状态切换走 URL 参数（不跨 frame 脚本，file:// 与 http:// 都能用）：
+    ?w=460|360 & page=home|uvr|style|set & state=ready|nokey|noenv|running|done & dlg=ask|cfm|ow
+-->
+<style>
+body { background:#141414; font:13px/1.6 "Segoe UI","Microsoft YaHei",sans-serif; color:#c9c9c9; margin:0; }
+.docbar { position:sticky; top:0; z-index:50; background:#1b1b1b; border-bottom:1px solid #333; padding:9px 16px; display:flex; flex-wrap:wrap; gap:7px 14px; align-items:center; }
+.docbar b.tt { color:#eee; font-size:14px; }
+.docbar .lbl { font-size:11px; color:#8a8a8a; }
+.docbar .grp { display:flex; gap:5px; align-items:center; }
+.docbar button { font:12px/1 "Segoe UI","Microsoft YaHei",sans-serif; padding:6px 11px; border-radius:6px; border:1px solid #3d3d3d; background:#262626; color:#bbb; cursor:pointer; }
+.docbar button:hover { border-color:#5a5a5a; color:#ddd; }
+.docbar button.on { background:#2f5f9e; border-color:#4a86d8; color:#fff; }
+.stage { display:flex; gap:24px; padding:20px 16px 60px; align-items:flex-start; justify-content:center; flex-wrap:wrap; }
+.panelWrap { flex:0 0 auto; }
+.panelTitle { text-align:center; font-size:11px; color:#777; margin:0 0 8px; }
+.frame { width:460px; margin:0 auto; border:1px solid #3a3a3a; border-radius:10px; overflow:hidden; box-shadow:0 10px 40px rgba(0,0,0,.55); background:#1f1f1f; }
+.frame.w360 { width:360px; }
+.frameInner { height:720px; }
+.frameInner iframe { width:100%; height:100%; border:0; display:block; }
+.notes { flex:0 1 430px; min-width:300px; max-width:480px; }
+.notes h3 { font-size:13px; color:#ddd; margin:4px 0 10px; }
+.noteItem { background:#1e1e1e; border:1px solid #333; border-left:3px solid #4a9eff; border-radius:6px; padding:8px 12px; margin-bottom:8px; font-size:12px; line-height:1.65; color:#b5b5b5; }
+.noteItem b { color:#e8e8e8; }
+.noteItem .tag2 { display:inline-block; font-size:10px; padding:0 6px; border-radius:8px; background:#26374e; color:#9fc3ec; margin-right:6px; }
+.foot { font-size:11px; color:#777; margin-top:14px; line-height:1.7; }
+</style>
+</head>
+<body>
+
+<div class="docbar">
+  <b class="tt">𝙉𝙤𝙣𝙞𝙞𝙠𝙖 · 全新 UI 评审台</b>
+  <span class="lbl">深色重设计 · 源文件未动</span>
+  <div class="grp"><span class="lbl">标签</span>
+    <button data-q="page=home" class="on">首页</button>
+    <button data-q="page=uvr">人声分离</button>
+    <button data-q="page=style">字幕样式</button>
+    <button data-q="page=set">设置</button>
+  </div>
+  <div class="grp"><span class="lbl">状态</span>
+    <button data-q="state=ready" class="on">就绪</button>
+    <button data-q="state=nokey">未配密钥</button>
+    <button data-q="state=noenv">环境未就绪</button>
+    <button data-q="state=running">跑任务中</button>
+    <button data-q="state=done">已出结果</button>
+  </div>
+  <div class="grp"><span class="lbl">弹窗</span>
+    <button data-q="dlg=ask">落轨询问</button>
+    <button data-q="dlg=cfm">清理确认</button>
+    <button data-q="dlg=ow">同名产物</button>
+    <button data-q="dlg=">关闭弹窗</button>
+  </div>
+  <div class="grp"><span class="lbl">宽度</span>
+    <button id="w460" class="on">460</button>
+    <button id="w360">360（最小）</button>
+  </div>
+</div>
+
+<div class="stage">
+  <div class="panelWrap">
+    <div class="panelTitle" id="cap">首页 · 就绪 · 460 宽</div>
+    <div class="frame" id="frame">
+      <div class="frameInner">
+        <iframe id="stage" src="index.html?page=home&state=ready" title="Noniika 全新 UI"></iframe>
+      </div>
+    </div>
+  </div>
+
+  <div class="notes">
+    <h3>这版重设计改了什么（对照旧版）</h3>
+    <div class="noteItem"><span class="tag2">导航</span><b>标签栏取代"返回式"二级页</b> —— 首页 / 人声分离 / 字幕样式 / 设置四页平铺，任何功能<b>一击直达</b>；⚙ 与标签双入口并存，老用户肌肉记忆不丢。</div>
+    <div class="noteItem"><span class="tag2">首页</span><b>「开工前检查」一卡通</b> —— 原「素材卡 + 引擎状态条 + 两个导航按钮」三块合并成一张卡：素材 / 识别引擎 / 人声分离 / 字幕样式四行，<b>每行带直达按钮</b>；打开面板 3 秒知道"能不能直接点"。</div>
+    <div class="noteItem"><span class="tag2">层级</span><b>维护动作沉底</b> —— 清理内存 / 清理插件文件挪到首页最底部（日志之下），低频操作不再挤占主路径。</div>
+    <div class="noteItem"><span class="tag2">保留</span><b>上一轮已验证的好东西全保留</b> —— 流程步骤条、结果统计网格 + 产物 chips、字幕预览框（实时）、依赖状态网格、密钥显隐、:focus-visible、360 单列降级。</div>
+    <div class="noteItem"><span class="tag2">配色</span><b>更深一档的工作室黑</b> —— 底色 #1f1f1f，让画面里的素材与彩色字幕成为最亮的东西；语义色一律"圆点 + 文字"双编码。</div>
+    <div class="foot">
+      功能零删减：4 页 + 3 弹窗、121 个旧 id 全保留（只增不改名）、28 个持久化设置全部在位 ——
+      逐条对照见同目录 <b>功能清单.md</b>；设计取舍与实施步骤见 <b>设计说明.md</b>。
+    </div>
+  </div>
+</div>
+
+<script>
+(function () {
+  var stage = document.getElementById("stage");
+  var frame = document.getElementById("frame");
+  var cap = document.getElementById("cap");
+  var cur = { page: "home", state: "ready", dlg: "", w: 460 };
+  var qs = new URLSearchParams(location.search);
+  if (qs.get("page")) cur.page = qs.get("page");
+  if (qs.get("state")) cur.state = qs.get("state");
+  if (qs.get("dlg")) cur.dlg = qs.get("dlg");
+  if (qs.get("w") === "360") cur.w = 360;
+
+  var PAGE_CN = { home: "首页", uvr: "人声分离", style: "字幕样式", set: "设置" };
+  var STATE_CN = { ready: "就绪", nokey: "未配密钥", noenv: "环境未就绪", running: "跑任务中", done: "已出结果" };
+
+  function apply() {
+    var q = "page=" + cur.page + "&state=" + cur.state + (cur.dlg ? "&dlg=" + cur.dlg : "");
+    stage.src = "index.html?" + q;
+    cap.textContent = PAGE_CN[cur.page] + " · " + STATE_CN[cur.state] + " · " + cur.w + " 宽";
+    frame.classList.toggle("w360", cur.w === 360);
+  }
+
+  var btns = document.querySelectorAll(".docbar button[data-q]");
+  for (var i = 0; i < btns.length; i++) {
+    btns[i].addEventListener("click", function () {
+      var kv = this.getAttribute("data-q").split("=");
+      var k = kv[0], v = kv[1];
+      if (k === "dlg") cur.dlg = v;
+      else { cur[k] = v; cur.dlg = ""; }
+      var grp = this.parentElement.querySelectorAll("button");
+      for (var j = 0; j < grp.length; j++) grp[j].classList.remove("on");
+      this.classList.add("on");
+      apply();
+    });
+  }
+  document.getElementById("w460").addEventListener("click", function () {
+    cur.w = 460; this.classList.add("on");
+    document.getElementById("w360").classList.remove("on"); apply();
+  });
+  document.getElementById("w360").addEventListener("click", function () {
+    cur.w = 360; this.classList.add("on");
+    document.getElementById("w460").classList.remove("on"); apply();
+  });
+  var allBtns = document.querySelectorAll(".docbar button[data-q]");
+  for (var b = 0; b < allBtns.length; b++) {
+    var kv = allBtns[b].getAttribute("data-q").split("=");
+    var want = kv[0] === "dlg" ? cur.dlg : cur[kv[0]];
+    allBtns[b].classList.toggle("on", kv[1] === want && !(kv[0] === "dlg" && !cur.dlg && kv[1] !== ""));
+  }
+  if (cur.w === 360) {
+    document.getElementById("w360").classList.add("on");
+    document.getElementById("w460").classList.remove("on");
+  }
+  apply();
+})();
+</script>
+</body>
+</html>

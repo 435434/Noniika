@@ -1,0 +1,35 @@
+# ===== Noniika · AE 自动字幕 — .gitignore =====
+
+# 本地 Python 环境（约 6.9 GB）
+python-env/
+
+# 人声分离模型权重（约 934 MB，按要求不随仓库分发）
+models/
+
+# 本地备份快照（约 10 GB）
+插件备份/
+
+# 构建产物（安装包 zip 与解压目录）
+插件打包/
+
+# 依赖与缓存
+node_modules/
+__pycache__/
+*.pyc
+
+# 随包 ffmpeg（129.5 MB，超过 GitHub 单文件 100 MB 上限）
+# 需要它请从 Releases 下载成品包
+pipeline/vendor/ffmpeg/
+
+# 测试素材与临时产物
+test/input/
+test/output/
+
+# 本地开发痕迹（含本机路径与工作日志）
+.workbuddy/
+
+# 系统杂物
+Thumbs.db
+desktop.ini
+.DS_Store
+*.log

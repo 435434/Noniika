@@ -1,0 +1,32 @@
+  清空输出目录
+  复制面板本体（cep/*）
+  jsx → jsxbin：0.1 MB → 0.1 MB（明文 jsx 已剔除，manifest ScriptPath 已改指 .jsxbin）
+  复制流水线（有意不含 node_modules：零运行时依赖 + 避开 GPL 传染）
+  随包 ffmpeg（LGPL 构建，已通过 --enable-gpl 检查）+ 许可全文
+            ffmpeg version N-126856-ged27b2c498-20260925 Copyright (c) 2 · 129.5 MB
+  已随包附带 LICENSE 与 THIRD-PARTY-NOTICES.md
+  随包附 Node.js 许可全文（145 KB，含 V8/OpenSSL/ICU 等内嵌组件清单）
+  复制自带 Node 运行时（node.exe + 许可全文）
+  写入使用说明.md
+  写入 一键安装.bat
+  写入 一键卸载.bat
+  写入 安装说明.md
+
+=== 出厂自检 ===
+  ✓ 无素材/模型/字体、无开发物料、无密钥字面量（28 个文本文件已扫）
+  ✓ 许可文件齐全：LICENSE / THIRD-PARTY-NOTICES.md / ffmpeg LICENSE.txt / Node.js LICENSE
+  打包 zip：Noniika-v0.9.1.zip
+
+=== 分发包体积 ===
+  插件目录                213.9 MB
+    CSXS/                      0.0 MB
+    assets/                    0.5 MB
+    css/                       0.0 MB
+    index.html                 0.0 MB
+    js/                        0.4 MB
+    jsx/                       0.1 MB
+    node-runtime/             83.2 MB
+    pipeline/                129.6 MB
+  zip 压缩包            86.1 MB
+
+  对照：打包前项目本体（cep + pipeline，含随包 ffmpeg、不含模型/环境）≈ 269.5 MB

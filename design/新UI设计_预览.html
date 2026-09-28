@@ -1,0 +1,533 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>𝙉𝙤𝙣𝙞𝙞𝙠𝙖 · UI 改版提案（预览稿，源文件未动）</title>
+<!-- 引用真实面板样式做底：你看到的一切排版都建立在现有 style.css 上，
+     改版差异全部写在本页 <style> 的 .v2 覆盖层里 —— 批准哪条就落实哪条 -->
+<link rel="stylesheet" href="../cep/css/style.css">
+<style>
+/* ============ 设计稿外壳（不属于面板） ============ */
+body.doc { background:#171717; font:13px/1.6 "Segoe UI","Microsoft YaHei",sans-serif; color:#c9c9c9; margin:0; }
+.docbar { position:sticky; top:0; z-index:50; background:#1d1d1d; border-bottom:1px solid #333; padding:10px 16px; display:flex; flex-wrap:wrap; gap:8px 14px; align-items:center; }
+.docbar b.tt { color:#eee; font-size:14px; }
+.docbar .grp { display:flex; gap:5px; align-items:center; }
+.docbar .lbl { font-size:11px; color:#8a8a8a; }
+.docbar button { font:12px/1 "Segoe UI","Microsoft YaHei",sans-serif; padding:6px 12px; border-radius:6px; border:1px solid #3d3d3d; background:#262626; color:#bbb; cursor:pointer; }
+.docbar button:hover { border-color:#5a5a5a; color:#ddd; }
+.docbar button.on { background:#2f5f9e; border-color:#4a86d8; color:#fff; }
+.stage { display:flex; gap:26px; padding:22px 16px 60px; align-items:flex-start; justify-content:center; flex-wrap:wrap; }
+.panelWrap { flex:0 0 auto; }
+.panelTitle { text-align:center; font-size:11px; color:#777; margin:0 0 8px; }
+.frame { width:460px; margin:0 auto; border:1px solid #3a3a3a; border-radius:10px; overflow:hidden; box-shadow:0 10px 40px rgba(0,0,0,.5); background:#232323; }
+.frameInner { height:720px; overflow:auto; }
+.notes { flex:0 1 400px; min-width:300px; max-width:460px; }
+.notes h3 { font-size:13px; color:#ddd; margin:4px 0 10px; }
+.noteItem { background:#202020; border:1px solid #333; border-left:3px solid #e2b93b; border-radius:6px; padding:8px 12px; margin-bottom:8px; font-size:12px; line-height:1.65; color:#b5b5b5; }
+.noteItem b { color:#e8e8e8; }
+.noteItem .n { display:inline-flex; width:16px; height:16px; border-radius:50%; background:#e2b93b; color:#1a1a1a; font-size:10px; align-items:center; justify-content:center; margin-right:7px; font-weight:600; }
+.foot { font-size:11px; color:#777; margin-top:14px; line-height:1.7; }
+
+/* ============ 改版覆盖层：全部作用在 .v2 下，撤掉 .v2 = 回到现状 ============ */
+.v2 { --radius:8px; padding:12px 12px 8px; }
+.v2 header h1 { font-size:16px; letter-spacing:.5px; }
+.v2 .card { border-color:#414141; }
+.v2 .card-title { font-size:11px; color:#969696; letter-spacing:.5px; margin-bottom:8px; }
+.v2 .card-title > span:first-child::before {
+  content:""; display:inline-block; width:3px; height:10px; border-radius:2px;
+  background:var(--accent); margin-right:6px; vertical-align:-1px; }
+.v2 button { border-radius:7px; }
+.v2 button:focus-visible, .v2 select:focus-visible, .v2 input:focus-visible {
+  outline:2px solid #4a86d8; outline-offset:1px; }
+.v2 button.primary { background:linear-gradient(180deg,#3a74c4,#2e5c9a); border-color:#4a86d8; }
+.v2 .runbtn { padding:10px 8px; }
+.v2 .runbtn b { font-size:13.5px; }
+.v2 .runbtn > span { font-size:10.5px; }
+.v2 .chk { line-height:1.5; }
+
+/* 新组件 1 · 识别引擎状态条 */
+.engbar { display:flex; align-items:center; gap:8px; padding:8px 11px; background:var(--panel2);
+  border:1px solid #3d3d3d; border-radius:8px; margin-top:11px; }
+.engbar .dot { width:8px; height:8px; border-radius:50%; background:var(--ok); flex:0 0 auto;
+  box-shadow:0 0 5px rgba(125,219,163,.55); }
+.engbar.bad .dot { background:var(--err); box-shadow:none; }
+.engbar .t { flex:1 1 auto; min-width:0; font-size:11.5px; color:var(--fg-dim); overflow:hidden; white-space:nowrap; text-overflow:ellipsis; }
+.engbar .t b { color:var(--fg); font-weight:500; }
+.engbar .chg { flex:0 0 auto; font-size:11px; color:#8fbef5; background:none; border:none; cursor:pointer; padding:2px 4px; }
+
+/* 新组件 2 · 流程步骤条 */
+.steps { display:flex; gap:4px; margin-top:11px; align-items:stretch; }
+.steps .st { flex:1 1 0; text-align:center; font-size:10px; color:var(--fg-hint); padding:5px 2px 6px;
+  background:var(--panel); border:1px solid #363636; border-radius:7px; }
+.steps .st.on { color:#dceafc; border-color:#4a86d8; background:#26374e; }
+.steps .st.done { color:var(--ok); border-color:#3a5a45; background:#243428; }
+.steps .sep { align-self:center; color:#5c5c5c; font-size:9px; flex:0 0 auto; }
+
+/* 新组件 3 · 结果统计网格 + 产物 chips */
+.statgrid { display:grid; grid-template-columns:1fr 1fr; gap:6px; margin-top:9px; }
+.statgrid .cell { background:var(--panel2); border:1px solid #3d3d3d; border-radius:7px; padding:5px 9px 6px; }
+.statgrid .k { font-size:10px; color:var(--fg-hint); }
+.statgrid .v { font-size:12.5px; color:var(--fg); margin-top:1px; }
+.chips { display:flex; flex-wrap:wrap; gap:5px; margin-top:9px; }
+.chips .chip { font-size:10.5px; padding:3px 10px; border:1px solid #3d3d3d; border-radius:11px;
+  color:#9fc3ec; background:#282828; cursor:pointer; }
+.chips .chip:hover { border-color:#5a7ba6; }
+
+/* 新组件 4 · 字幕预览框 */
+.prevbox { margin-top:9px; background:#141414; border:1px solid #383838; border-radius:7px;
+  padding:16px 8px 10px; text-align:center; }
+.prevbox .t { color:#ffe600; font-size:36px; line-height:1.25; font-family:"KaiTi","STKaiti",serif;
+  text-shadow:0 2px 8px rgba(0,0,0,.6); }
+.prevbox .cap { font-size:10px; color:var(--fg-hint); margin-top:8px; }
+
+/* 新组件 5 · 依赖/环境状态网格 */
+.envgrid { display:grid; grid-template-columns:1fr 1fr; gap:5px; margin-top:8px; }
+.envgrid .er { display:flex; gap:7px; align-items:center; font-size:11px; color:var(--fg-dim);
+  background:var(--panel2); border:1px solid #3d3d3d; border-radius:7px; padding:5px 9px; }
+.envgrid .dot { width:6px; height:6px; border-radius:50%; background:var(--ok); flex:0 0 auto; }
+.envgrid .er.off .dot { background:#666; }
+.envgrid .er.warn .dot { background:var(--warn); }
+.envgrid .er b { color:var(--fg); font-weight:500; margin-left:auto; font-size:10.5px; }
+
+/* 新组件 6 · 密钥行（含显示/隐藏） */
+.keyrow { display:flex; gap:6px; align-items:stretch; }
+.keyrow input { flex:1 1 auto; }
+.keyrow .eye { flex:0 0 46px; white-space:nowrap; padding:0 4px; }
+
+/* 标注层 */
+.mk { display:none; }
+body.annot .mk { display:inline-flex; width:15px; height:15px; border-radius:50%; background:#e2b93b;
+  color:#1a1a1a; font-size:9.5px; font-weight:700; align-items:center; justify-content:center;
+  margin-left:6px; vertical-align:1px; cursor:help; }
+body.annot [data-new] { outline:1px dashed rgba(226,185,59,.5); outline-offset:2px; border-radius:6px; }
+body.old [data-new] { display:none !important; }
+</style>
+</head>
+<body class="doc">
+
+<div class="docbar">
+  <b class="tt">𝙉𝙤𝙣𝙞𝙞𝙠𝙖 · UI 改版提案</b>
+  <span class="lbl">预览稿 · 源文件未动</span>
+  <div class="grp"><span class="lbl">页面</span>
+    <button class="on" data-page="pageHome">首页</button>
+    <button data-page="pageUvr">人声分离</button>
+    <button data-page="pageStyle">字幕样式</button>
+    <button data-page="pageSet">设置</button>
+    <button data-page="pageDlg">弹窗</button>
+  </div>
+  <div class="grp"><span class="lbl">版本</span>
+    <button id="btnNew" class="on">新版</button>
+    <button id="btnOld">现状</button>
+  </div>
+  <div class="grp">
+    <button id="btnAnnot">显示改动标注</button>
+  </div>
+  <div class="grp"><span class="lbl">面板宽度</span>
+    <button class="on" data-w="460">460</button>
+    <button data-w="360">360（最小）</button>
+  </div>
+</div>
+
+<div class="stage">
+  <div class="panelWrap">
+    <p class="panelTitle">面板宽度 <span id="wLabel">460</span> px · 以下是面板内容</p>
+    <div class="frame"><div class="frameInner" id="panelRoot">
+    <div class="app v2" id="panel">
+
+      <!-- ================= 首页 ================= -->
+      <div class="page on" id="pageHome">
+        <header>
+          <h1>𝙉𝙤𝙣𝙞𝙞𝙠𝙖</h1>
+          <div class="hdrRight">
+            <span class="badge ok" data-new>环境就绪</span>
+            <button class="icon" title="设置">⚙</button>
+          </div>
+        </header>
+
+        <!-- ① 识别引擎状态条 -->
+        <div class="engbar" data-new>
+          <span class="mk">1</span>
+          <span class="dot"></span>
+          <span class="t">识别：<b>硅基流动</b> · <b>SenseVoiceSmall</b>（免费档）· 密钥<b>已配置</b></span>
+          <button class="chg">更改</button>
+        </div>
+
+        <section class="card" style="margin-top:10px">
+          <div class="card-title">
+            <span>时间线上选中的素材</span>
+            <button class="ghost small">刷新</button>
+          </div>
+          <div class="info">无上光荣.mp4 · 00:12.4 ~ 00:31.8（19.4 秒）· 有音轨</div>
+          <div class="hint">将只导出这一段 —— 不是整段合成。</div>
+        </section>
+
+        <div class="actions split" style="margin-top:10px">
+          <button class="runbtn"><b>分离人声</b><span>只分离，不识别字幕</span></button>
+          <button class="primary runbtn"><b>▶　生成字幕</b><span>分离 + 识别 + 建层</span></button>
+        </div>
+
+        <!-- ② 流程步骤条 -->
+        <div class="steps" data-new>
+          <span class="mk">2</span>
+          <div class="st done">导出音频</div><span class="sep">›</span>
+          <div class="st on">分离人声</div><span class="sep">›</span>
+          <div class="st">云端识别</div><span class="sep">›</span>
+          <div class="st">建字幕层</div>
+        </div>
+
+        <div class="actions sub" style="margin-top:10px">
+          <button class="navbtn"><b>人声分离设置</b><span>当前：开 · Kim Vocal 2</span></button>
+          <button class="navbtn"><b>字幕样式</b><span>每句一层 · 72 · 华文行楷</span></button>
+        </div>
+
+        <div class="actions fill maint" style="margin-top:8px">
+          <button class="ghost small">清理内存</button>
+          <button class="ghost small">清理插件文件</button>
+        </div>
+
+        <label class="chk always" style="margin-top:10px">
+          <input type="checkbox" checked> 识别完成后在 AE 中创建字幕图层
+        </label>
+
+        <div class="progress" style="margin-top:10px"><div style="width:46%"></div></div>
+        <div class="status">分离人声 · Kim Vocal 2（GPU 加速）</div>
+
+        <!-- ③ 结果卡（改版：数字网格 + 产物 chips） -->
+        <section class="card" style="margin-top:10px" data-new>
+          <span class="mk">3</span>
+          <div class="card-title"><span>本次结果</span><button class="ghost small">打开目录</button></div>
+          <div class="statgrid">
+            <div class="cell"><div class="k">识别句子</div><div class="v">14 句</div></div>
+            <div class="cell"><div class="k">总字数</div><div class="v">186 字</div></div>
+            <div class="cell"><div class="k">引擎 / 模型</div><div class="v">硅基流动 · SenseVoiceSmall</div></div>
+            <div class="cell"><div class="k">时间轴来源</div><div class="v">按静音切块重建</div></div>
+          </div>
+          <div class="chips">
+            <button class="chip">无上光荣.srt</button>
+            <button class="chip">无上光荣.json</button>
+            <button class="chip">无上光荣.txt</button>
+          </div>
+        </section>
+
+        <details class="card" style="margin-top:10px">
+          <summary>运行日志</summary>
+          <div class="log">[12%] 转码为 16000Hz 单声道 WAV
+[46%] 分离人声 · Kim Vocal 2（GPU）
+[78%] 上传并等待识别结果
+识别完成：共 14 段、186 字，语音覆盖 82.4%
+  · 引擎 硅基流动 SiliconFlow / FunAudioLLM/SenseVoiceSmall（档位默认）
+  · 时间轴 按静音切块重建 · 上传格式 WAV</div>
+        </details>
+
+        <div class="footnote" style="margin-top:8px">识别时音频会上传到所选服务商的云端，请勿处理机密内容。</div>
+      </div>
+
+      <!-- ================= 人声分离 ================= -->
+      <div class="page" id="pageUvr">
+        <header class="sub">
+          <button class="icon">←</button>
+          <h1>人声分离</h1>
+          <span class="badge" style="margin-left:auto">开</span>
+        </header>
+
+        <section class="card">
+          <label class="chk" style="margin-top:0"><input type="checkbox" checked> 识别前先分离人声</label>
+          <div class="indent">
+            <div class="row"><label>分离目标</label>
+              <select><option>仅人声（去掉背景音乐）</option><option>仅伴奏（做卡拉OK）</option><option>人声 + 伴奏都保留</option></select>
+            </div>
+            <div class="row"><label>模型</label>
+              <select><option>Kim Vocal 2 · 人声 10.2（默认 · 速度快）</option><option>MelBand Roformer · 人声 12.6 ★最高</option></select>
+            </div>
+            <div class="row"><label>输出</label>
+              <select><option>WAV 无损</option><option>FLAC</option><option>MP3 320k</option></select>
+            </div>
+            <label class="chk"><input type="checkbox"> 保留分离后的人声文件</label>
+          </div>
+        </section>
+
+        <section class="card" style="margin-top:10px">
+          <div class="card-title"><span>本地依赖</span><button class="ghost small">检查依赖</button></div>
+          <!-- ⑤ 依赖状态网格 -->
+          <div class="envgrid" data-new>
+            <span class="mk">5</span>
+            <div class="er"><span class="dot"></span>分离环境<b>已装 · GPU 版</b></div>
+            <div class="er"><span class="dot"></span>当前模型<b>已下载</b></div>
+            <div class="er warn"><span class="dot"></span>GPU (CUDA)<b>未启用</b></div>
+            <div class="er"><span class="dot"></span>Python<b>3.12.14</b></div>
+          </div>
+          <div class="actions fill" style="margin-top:9px">
+            <button class="small">一键安装环境</button>
+            <button class="small">下载模型</button>
+            <button class="ghost small">清理模型</button>
+          </div>
+          <label class="chk" style="margin-top:6px"><input type="checkbox" checked> GPU 加速（约 4 GB，快十几倍）</label>
+          <div class="row" style="margin-top:8px"><label>Python</label><input type="text" placeholder="留空自动探测（需 3.10~3.13）"></div>
+          <div class="hint">分离在本地跑，音频不会因为这一步离开你的电脑。10 分钟素材约 10~30 分钟（CPU）。</div>
+        </section>
+
+        <section class="card" style="margin-top:10px">
+          <div class="card-title"><span>字幕动画</span></div>
+          <label class="chk" style="margin-top:0"><input type="checkbox" checked> 短句不加动画预设</label>
+          <div class="hint">句子短于 0.6 秒且比预设动画还短时，套上只会一闪而过 —— 勾选后这类短句直接静止显示到句尾。</div>
+        </section>
+
+        <div class="footnote">开启后的流程：AE 导出音频 → 本地分离人声 → 只把人声送云端识别。</div>
+      </div>
+
+      <!-- ================= 字幕样式 ================= -->
+      <div class="page" id="pageStyle">
+        <header class="sub">
+          <button class="icon">←</button>
+          <h1>字幕样式</h1>
+        </header>
+
+        <!-- ④ 字幕预览框 -->
+        <section class="card" data-new style="margin-top:0">
+          <div class="card-title"><span>预览（近似效果，实际以 AE 渲染为准）</span></div>
+          <div class="prevbox">
+            <span class="mk">4</span>
+            <div class="t">坚持就是胜利</div>
+            <div class="cap">华文行楷 · 72px · #FFE600 · 居中</div>
+          </div>
+        </section>
+
+        <section class="card" style="margin-top:10px">
+          <div class="row" style="margin-top:0"><label>排布</label>
+            <select><option>每句一层（改哪句点哪句）</option><option>单层 + 关键帧</option></select>
+          </div>
+          <div class="row"><label>图层命名</label>
+            <select><option>文字命名（图层名=那句话）</option><option>前缀 + 序号</option></select>
+          </div>
+          <div class="row"><label>字体</label>
+            <input type="text" placeholder="名称 / 拼音 / 首字母">
+            <button class="ghost small">拾取</button>
+          </div>
+          <div class="row">
+            <button class="reloadBtn">刷新列表</button>
+            <select><option>华文行楷 STXingkai</option><option>思源黑体 CN Heavy</option><option>站酷高端黑</option></select>
+            <button class="favBtn on" title="已收藏">★</button>
+          </div>
+          <div class="hint">已收藏 2 个：<b>华文行楷</b>、<b>站酷快乐体</b></div>
+          <div class="row">
+            <div class="half"><label>字号</label><input type="number" value="72"></div>
+            <div class="half"><label>颜色</label><input type="color" value="#ffe600"></div>
+          </div>
+          <label class="chk"><input type="checkbox"> 去掉字幕里的标点符号</label>
+          <div class="hint">勾选后要重新生成一次才生效。数字里的小数点（3.14）与千分位（1,000）会保留。</div>
+        </section>
+
+        <section class="card" style="margin-top:10px">
+          <div class="card-title"><span>文字动画预设</span></div>
+          <div class="row" style="margin-top:0"><label>搜索</label><input type="text" placeholder="预设名 / 分类 / 拼音"></div>
+          <div class="row"><label>预设</label>
+            <select><option>打字机 · Typewriter</option><option>飞入 · Fly In</option></select>
+            <button class="favBtn">☆</button>
+          </div>
+          <div class="hint">已选预设不影响字幕居中（实测 AE 自带文字预设都走文本动画器）。</div>
+        </section>
+
+        <section class="card" style="margin-top:10px">
+          <div class="card-title"><span>字幕体检</span></div>
+          <div class="actions fill" style="margin-top:2px">
+            <button class="small">检查字幕是否可见</button>
+            <button class="ghost small">修复动画关键帧错位</button>
+          </div>
+          <div class="hint">「明明建了图层画面却是空的」时用 —— 只读检查，不改任何东西。</div>
+        </section>
+      </div>
+
+      <!-- ================= 设置 ================= -->
+      <div class="page" id="pageSet">
+        <header class="sub">
+          <button class="icon">←</button>
+          <h1>设置</h1>
+          <span class="badge" style="margin-left:auto">3 组</span>
+        </header>
+
+        <section class="card" style="margin-top:8px">
+          <div class="card-title"><span>识别选项</span></div>
+          <div class="row" style="margin-top:0"><label>每行字数</label><input type="number" value="16"></div>
+          <label class="chk"><input type="checkbox"> 丢弃疑似误识别段</label>
+          <label class="chk"><input type="checkbox" checked> 按真实语音时长校正每句时间</label>
+          <label class="chk"><input type="checkbox" checked> 限制单次处理时长</label>
+          <div class="row"><label>上限</label><input type="number" value="10" style="flex:0 0 72px"><span class="hint" style="margin:0;flex:0 0 auto">分钟</span></div>
+
+          <div class="row" style="margin-top:9px"><label>引擎</label>
+            <select><option>硅基流动 SiliconFlow（免费 · 不限次）</option><option>腾讯云（每月10小时 · 词级时间戳）</option><option>自建 / OpenAI 兼容</option></select>
+          </div>
+          <div class="engbar" data-new style="margin-top:8px">
+            <span class="mk">1</span>
+            <span class="dot"></span>
+            <span class="t"><b>SenseVoiceSmall</b>（档位默认）· <b>已配置</b></span>
+          </div>
+          <div class="keyrow" style="margin-top:8px">
+            <input type="text" data-new>
+            <span class="mk">6</span>
+            <button class="ghost small eye" data-new>显示</button>
+          </div>
+          <div class="actions" style="margin-top:8px">
+            <button class="ghost small">测试密钥</button>
+            <button class="ghost small">去申请密钥</button>
+          </div>
+
+          <details style="margin-top:8px">
+            <summary class="hint" style="cursor:pointer">高级（模型 / 服务地址 / 提示词）</summary>
+            <div class="row"><label>模型</label><input type="text" placeholder="留空用默认"></div>
+            <div class="row"><label>挑一个</label>
+              <select><option>FunAudioLLM/SenseVoiceSmall（免费 · 中文好）</option><option>Qwen/Qwen3-ASR-1.7B（免费 · 更强）</option></select>
+            </div>
+            <div class="row"><label>服务地址</label><input type="text" placeholder="留空用默认；自建服务才需要填"></div>
+            <div class="row"><label>提示词</label><input type="text" placeholder="人名 / 专有名词"></div>
+            <label class="chk"><input type="checkbox" checked> 允许按静音切块识别（免费引擎靠它重建时间轴）</label>
+          </details>
+          <div class="hint">密钥只存本机（明文）。也可改用环境变量 AESUB_API_KEY。</div>
+        </section>
+
+        <section class="card" style="margin-top:10px">
+          <div class="card-title"><span>输出与日志</span></div>
+          <div class="row" style="margin-top:0"><label>输出目录</label><input type="text" placeholder="留空则跟随工程目录"></div>
+          <label class="chk"><input type="checkbox"> 保留中间音频（排障用）</label>
+          <div class="actions" style="margin-top:8px">
+            <button class="ghost small">试导出</button>
+            <button class="ghost small">用已有字幕建图层</button>
+          </div>
+        </section>
+
+        <section class="card" style="margin-top:10px">
+          <div class="card-title"><span>环境与诊断</span></div>
+          <div class="envgrid" data-new>
+            <div class="er"><span class="dot"></span>Node<b>v22.22.2</b></div>
+            <div class="er"><span class="dot"></span>ffmpeg<b>LGPL · 随包</b></div>
+            <div class="er"><span class="dot"></span>分离环境<b>GPU 版已装</b></div>
+            <div class="er off"><span class="dot"></span>流水线<b>自动探测</b></div>
+          </div>
+          <div class="row" style="margin-top:8px"><label>Node</label><input type="text" placeholder="留空自动检测"></div>
+          <div class="row"><label>数据目录</label><input type="text" placeholder="留空用「我的文档/AE自动字幕」"></div>
+          <div class="actions" style="margin-top:8px">
+            <button class="ghost small">重新检测环境</button>
+            <button class="ghost small">恢复默认</button>
+            <button class="ghost small">跑自检</button>
+          </div>
+        </section>
+
+        <div class="about">
+          𝙉𝙤𝙣𝙞𝙞𝙠𝙖 v0.9.0 · 基础版<br>
+          作者：𝙁𝙖𝙙𝙚
+        </div>
+      </div>
+
+      <!-- ================= 弹窗（三种，静态展示） ================= -->
+      <div class="page" id="pageDlg" style="padding-bottom:14px">
+        <header class="sub"><button class="icon">←</button><h1>弹窗（静态展示）</h1></header>
+
+        <div class="askBox" style="margin-top:10px">
+          <div class="askTitle">输出目录里已有同名产物</div>
+          <div class="askBody">上一轮已生成「无上光荣」的产物：<b>.srt / .json</b>，且存在<b>已分离的人声文件</b>。</div>
+          <div class="askBtns">
+            <button class="primary small">跳过分离，用已有的人声</button>
+            <button class="ghost small">覆盖旧产物</button>
+            <button class="ghost small">取消</button>
+          </div>
+          <div class="hint">跳过分离：不重跑本机 CPU 的分离（几分钟），直接复用已有的人声识别。</div>
+        </div>
+
+        <div class="askBox" style="margin-top:12px">
+          <div class="askTitle">分离出的人声怎么放？</div>
+          <div class="askBody">源素材是纯音频。分离出的新音轨可以直接替换它，或放到下方。</div>
+          <div class="askBtns">
+            <button class="primary small">替换原音频</button>
+            <button class="ghost small">放到它下方</button>
+            <button class="ghost small">取消</button>
+          </div>
+        </div>
+
+        <div class="askBox" style="margin-top:12px">
+          <div class="askTitle">确认清理</div>
+          <div class="askBody">☐ 中间音频（3 个文件 · 5.6 MB）<br>☐ 人声分离产物（2 个文件 · 48 MB）</div>
+          <div class="askBtns">
+            <button class="primary small">确认清理</button>
+            <button class="ghost small">取消</button>
+          </div>
+          <div class="hint">删除的文件会进回收站，随时可以还原。</div>
+        </div>
+      </div>
+
+    </div><!-- /.app -->
+    </div></div><!-- /.frameInner /.frame -->
+  </div>
+
+  <div class="notes">
+    <h3>改动说明（点上面「显示改动标注」对号入座）</h3>
+    <div id="noteList"></div>
+    <div class="foot">
+      阅读方式：<b>顶部切页签</b>看四个页面与弹窗；<b>「现状 / 新版」</b>来回切，差异一目了然；
+      <b>「显示改动标注」</b>把新东西框出来编号。<br>
+      本页引用的是<b>真实面板的 style.css</b> —— 你看到的新样式将来就是照这份覆盖层改源码，
+      批准哪几条就落实哪几条。<b>源文件目前一行未动。</b>
+    </div>
+  </div>
+</div>
+
+<script>
+var NOTES = [
+  [1, "<b>识别引擎状态条</b>：打开面板第一眼就能看到 引擎 / 模型 / 密钥状态 —— 解决“日志里看不出用的哪个模型”和“没配密钥点了才报错”两件事。没配密钥时圆点变红、直接给「更改」入口。"],
+  [2, "<b>流程步骤条</b>：跑的时候四步（导出→分离→识别→建层）哪步在跑一目了然，对应流水线真实上报的步骤，不再是“一个百分比+一行字”。"],
+  [3, "<b>结果卡升级</b>：句数/字数/引擎/时间轴来源排成网格，产物文件做成可点的 chips（点了直接打开文件）。"],
+  [4, "<b>字幕预览框</b>：字号/颜色/字体改完立刻看近似效果，不用生成一次才知道。标注了“近似，实际以 AE 为准”。"],
+  [5, "<b>依赖状态网格</b>：环境/模型/GPU/Python 四项一眼看清哪些就绪，代替纯文字行。"],
+  [6, "<b>密钥输入加「显示」</b>：长 key 粘贴容易错，可切明文核对（默认仍是掩码）。"],
+  [7, "<b>视觉层</b>：卡片标题加主题色小竖条、圆角统一 8px、主按钮加渐变层次、键盘焦点可见 —— 不换深色基调，保持 AE 原生感。"]
+];
+var nl = document.getElementById("noteList");
+NOTES.forEach(function (it) {
+  var d = document.createElement("div");
+  d.className = "noteItem";
+  d.innerHTML = '<span class="n">' + it[0] + "</span>" + it[1];
+  nl.appendChild(d);
+});
+
+var panel = document.getElementById("panel");
+var pageIds = ["pageHome", "pageUvr", "pageStyle", "pageSet", "pageDlg"];
+
+function go(id) {
+  pageIds.forEach(function (p) {
+    document.getElementById(p).classList.toggle("on", p === id);
+  });
+  var btns = document.querySelectorAll(".docbar [data-page]");
+  btns.forEach(function (b) { b.classList.toggle("on", b.getAttribute("data-page") === id); });
+}
+document.querySelectorAll(".docbar [data-page]").forEach(function (b) {
+  b.addEventListener("click", function () { go(b.getAttribute("data-page")); });
+});
+
+function setNew(on) {
+  panel.classList.toggle("v2", on);
+  document.querySelectorAll("[data-new]").forEach(function (e) {
+    e.style.display = on ? "" : "none";
+  });
+  document.getElementById("btnNew").classList.toggle("on", on);
+  document.getElementById("btnOld").classList.toggle("on", !on);
+}
+document.getElementById("btnNew").addEventListener("click", function () { setNew(true); });
+document.getElementById("btnOld").addEventListener("click", function () { setNew(false); });
+
+document.getElementById("btnAnnot").addEventListener("click", function () {
+  var on = document.body.classList.toggle("annot");
+  this.classList.toggle("on", on);
+});
+
+document.querySelectorAll("[data-w]").forEach(function (b) {
+  b.addEventListener("click", function () {
+    var w = b.getAttribute("data-w");
+    document.querySelector(".frame").style.width = w + "px";
+    document.getElementById("wLabel").textContent = w;
+    document.querySelectorAll("[data-w]").forEach(function (x) { x.classList.toggle("on", x === b); });
+  });
+});
+
+var h = (location.hash || "").replace("#", "");
+if (pageIds.indexOf(h) >= 0) go(h);
+</script>
+</body>
+</html>

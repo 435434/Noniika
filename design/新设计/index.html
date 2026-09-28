@@ -1,0 +1,593 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>Noniika</title>
+<!--
+  Noniika v0.9.0 · 全新 UI 重设计（深色）
+  ============================================================
+  设计原则（对应 设计说明.md）：
+  1. 顶部标签栏 = 全部导航：4 页平铺，任何功能一击直达，无"返回"概念
+  2. 首页一张「开工前检查卡」：素材 / 识别引擎 / 人声分离 / 字幕样式
+     四行状态各带直达按钮 —— 打开面板 3 秒内知道"能不能直接点"
+  3. 功能零删减：cep/index.html 的 121 个 id 全部保留，只增不改名
+  4. 深色体系继承全部平台教训：color-scheme、表单选择器、深色滚动条、
+     无 datalist / 无外链、动画不加 fill-mode（IME 候选窗坐标）
+  本文件为设计稿：cep/ 源文件未动；样式是全新 style.css（非覆盖层）。
+  ============================================================
+-->
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="app">
+
+  <!-- ============================================================
+       全局：页眉 + 标签栏（四页共用）
+       ============================================================ -->
+  <header>
+    <h1>𝙉𝙤𝙣𝙞𝙞𝙠𝙖</h1>
+    <div class="hdrRight">
+      <span id="envBadge" class="badge ok">环境就绪</span>
+      <button class="icon" id="btnGear" title="设置">⚙</button>
+    </div>
+  </header>
+
+  <nav class="tabs" id="tabs" title="四个板块，一击直达">
+    <button class="tab on" id="tabHome" data-page="home">首页</button>
+    <button class="tab" id="tabUvr" data-page="uvr">人声分离</button>
+    <button class="tab" id="tabStyle" data-page="style">字幕样式</button>
+    <button class="tab" id="tabSet" data-page="set">设置</button>
+  </nav>
+
+  <!-- ============================================================
+       标签 1 · 首页
+       阅读顺序 = 操作顺序：就绪检查 → 主动作 → 进度 → 结果 → 日志
+       ============================================================ -->
+  <div class="page on" id="pageHome">
+
+    <!-- 开工前检查卡：合并了原「素材卡 / 引擎状态条 / 两个导航入口」，
+         四行状态每行带直达按钮 —— 打开面板一眼判定能不能直接点 -->
+    <section class="card" id="readyCard">
+      <div class="card-title">
+        <span>开工前检查</span>
+        <button id="btnRefresh" class="ghost small" title="重新读取时间线上选中的图层">刷新</button>
+      </div>
+      <div class="rrows">
+        <div class="rrow" id="readySel">
+          <span class="dot ok"></span>
+          <span class="rk">素材</span>
+          <span class="rv" id="selInfo">「建军大业_片段03」· 视频+音频 · 00:00.0 ~ 00:12.4（12.4 秒）</span>
+        </div>
+        <div class="hint" id="selHint" style="margin:2px 0 0 21px"></div>
+        <div class="rrow" id="engBar">
+          <span class="dot ok" id="engBarDot"></span>
+          <span class="rk">识别引擎</span>
+          <span class="rv" id="engBarText">硅基流动 · 免费档 <b>/ SenseVoiceSmall</b>（档位默认）· 密钥已配置</span>
+          <button class="rlink" id="btnEngChange" title="去设置页更改引擎与密钥">更改</button>
+        </div>
+        <div class="rrow" id="readyUvr">
+          <span class="dot ok"></span>
+          <span class="rk">人声分离</span>
+          <span class="rv"><span id="navUvr">开 · Kim Vocal 2 · GPU</span></span>
+          <button class="rlink" id="btnGoUvr" title="进入人声分离设置">设置</button>
+        </div>
+        <div class="rrow" id="readyStyle">
+          <span class="dot ok"></span>
+          <span class="rk">字幕样式</span>
+          <span class="rv" id="navStyle">每句一层 · 72 · 华文行楷</span>
+          <button class="rlink" id="btnGoStyle" title="进入字幕样式">设置</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- 主操作一分为二：只想要人声时不必白走一遍识别 -->
+    <div class="actions split">
+      <button id="btnSeparate" class="runbtn"
+        title="只做本地人声分离并落轨：不上传云端、不识别、不建字幕层">
+        <b>分离人声</b><span>只分离，不识别字幕</span>
+      </button>
+      <button id="btnRun" class="primary runbtn"
+        title="完整流程：导出 → 分离（若开启）→ 云端识别 → 建字幕图层">
+        <b>▶　生成字幕</b><span>分离 + 识别 + 建层</span>
+      </button>
+    </div>
+
+    <!-- 流程步骤条：四步走到哪，与进度条/状态行同源 -->
+    <div class="steps" id="steps" title="导出 → 分离 → 识别 → 建层">
+      <div class="st" id="stExport">导出</div><span class="sep">›</span>
+      <div class="st" id="stSep">分离</div><span class="sep">›</span>
+      <div class="st" id="stAsr">识别</div><span class="sep">›</span>
+      <div class="st" id="stLayer">建层</div>
+    </div>
+
+    <!-- 总开关：决定这次点击有没有产出，常显（标签栏之外唯一常驻配置） -->
+    <label class="chk always" title="关掉它只会生成 .srt / .json 文件">
+      <input type="checkbox" id="createLayers" checked> 识别完成后在 AE 中创建字幕图层
+    </label>
+    <div id="noLayerWarn" class="hint warnText" style="display:none">
+      当前只生成字幕文件（.srt / .json），不会在 AE 里建图层。
+    </div>
+
+    <div class="progress"><div id="bar"></div></div>
+    <div id="status" class="status">就绪</div>
+
+    <!-- 结果摘要：跑完才有内容 -->
+    <section class="card" id="resultCard" style="display:none">
+      <div class="card-title">
+        <span>本次结果</span>
+        <button id="btnOpenOut" class="ghost small">打开目录</button>
+      </div>
+      <div id="resultInfo" class="info">识别完成，已建 47 个字幕图层（每句一层）</div>
+      <div class="statgrid" id="statGrid">
+        <div class="cell"><div class="k">句数</div><div class="v" id="statSent">47</div></div>
+        <div class="cell"><div class="k">字数</div><div class="v" id="statChars">812</div></div>
+        <div class="cell"><div class="k">引擎 / 模型</div><div class="v" id="statEngine">硅基流动 · SenseVoiceSmall</div></div>
+        <div class="cell"><div class="k">时间轴来源</div><div class="v" id="statTimeline">时间轴重建（按静音切块）</div></div>
+      </div>
+      <div class="chips" id="chipsRow">
+        <button class="chip" id="chipSrt" title="打开 .srt 字幕文件">字幕.srt</button>
+        <button class="chip" id="chipJson" title="打开 .json（含时间戳与置信度）">字幕.json</button>
+        <button class="chip" id="chipTxt" title="打开 .txt 纯文本">字幕.txt</button>
+      </div>
+      <div id="resultTip" class="tip bad" style="display:none"></div>
+    </section>
+
+    <details class="card" id="logBox">
+      <summary>运行日志</summary>
+      <div id="log" class="log"><span class="ok">√ 导出音频 12.4s（_中间音频/建军大业_片段03.wav，2.3 MB）</span>
+<span class="ok">√ 分离人声完成（Kim Vocal 2 · GPU · 用时 4.3 秒）</span>
+<span class="warn">! 引擎 SenseVoiceSmall 不返回时间戳 → 已走时间轴重建</span>
+<span class="ok">√ 识别完成：47 句 / 812 字 · 用时 6.1 秒</span>
+<span class="ok">√ 已建 47 个字幕图层，全部水平居中（最大偏差 0px）</span></div>
+    </details>
+
+    <!-- 维护条：低频动作沉底，不挡主路径 -->
+    <div class="actions fill maint">
+      <button id="btnFreeMem" class="ghost small" title="把各程序占着不用的内存还给系统。不结束任何进程，也会跳过 AE 本身">
+        <svg class="ico" viewBox="0 0 16 16" aria-hidden="true"><path d="M8 1.6c2.1 2.1 3.1 4.3 3.1 6.6 0 .5-.05 1-.15 1.5H5.05c-.1-.5-.15-1-.15-1.5C4.9 5.9 5.9 3.7 8 1.6z"/><circle cx="8" cy="6.1" r="1.15"/><path d="M5.1 6.9 2.9 9.2v2.4l2.2-1.2M10.9 6.9l2.2 2.3v2.4l-2.2-1.2M7.1 11.4c.25 1.6.55 2.4 1 2.4h-.2c.45 0 .75-.8 1-2.4"/></svg>
+        清理内存</button>
+      <button id="btnCleanFiles" class="ghost small" title="清理插件产生的中间音频、人声分离产物、临时文件。删到回收站，可还原">
+        <svg class="ico" viewBox="0 0 16 16" aria-hidden="true"><path d="M2.6 4.4h10.8"/><path d="M6.1 4.4V2.9h3.8v1.5"/><path d="M3.9 4.4l.72 8.6c.05.62.57 1.1 1.19 1.1h4.38c.62 0 1.14-.48 1.19-1.1l.72-8.6"/><path d="M6.7 6.9v4.4M9.3 6.9v4.4"/></svg>
+        清理插件文件</button>
+    </div>
+    <div id="maintOut" class="hint" style="margin-top:6px"></div>
+
+    <div class="footnote">识别时音频会上传到「识别引擎」所选服务商的云端，请勿处理机密内容。</div>
+  </div>
+
+  <!-- ============================================================
+       标签 2 · 人声分离
+       ============================================================ -->
+  <div class="page" id="pageUvr">
+
+    <section class="card">
+      <div class="card-title"><span>识别前先分离人声</span><span id="uvrBadge" class="badge ok">开</span></div>
+      <label class="chk" style="margin-top:0">
+        <input type="checkbox" id="uvrOn" checked> 开启后：本地分离人声 → 只把人声送云端识别
+      </label>
+
+      <div class="indent" id="uvrBody">
+        <div class="row"><label>分离目标</label>
+          <select id="uvrTarget">
+            <option value="vocals">仅人声（去掉背景音乐）</option>
+            <option value="instrumental">仅伴奏（做卡拉OK）</option>
+            <option value="both">人声 + 伴奏都保留</option>
+          </select>
+        </div>
+        <div class="row"><label>模型</label>
+          <select id="uvrModel">
+            <optgroup label="人声质量优先（12 分档 · 需 GPU）">
+              <option value="vocals_mel_band_roformer.ckpt">MelBand Roformer · 人声 12.6　★榜单最高</option>
+              <option value="melband_roformer_big_beta4.ckpt">MelBand Big Beta4 · 人声 12.5</option>
+              <option value="mel_band_roformer_kim_ft_unwa.ckpt">MelBand Kim FT · 人声 12.4</option>
+              <option value="melband_roformer_big_beta5e.ckpt">MelBand Big Beta5e · 人声 12.4</option>
+              <option value="MelBandRoformerBigSYHFTV1.ckpt">MelBand Big SYHFT · 人声 12.3</option>
+            </optgroup>
+            <optgroup label="人声与伴奏并重（需 GPU）">
+              <option value="model_bs_roformer_ep_368_sdr_12.9628.ckpt">BS-Roformer 1296 · 人声 12.1 / 伴奏 16.3</option>
+              <option value="model_bs_roformer_ep_317_sdr_12.9755.ckpt">BS-Roformer 1297 · 人声 11.8 / 伴奏 16.5　★伴奏最强</option>
+              <option value="htdemucs_ft.yaml">Demucs v4 FT · 人声 10.8 · 四轨（含鼓/贝斯）</option>
+            </optgroup>
+            <optgroup label="速度优先（CPU 也能跑）">
+              <option value="Kim_Vocal_2.onnx" selected>Kim Vocal 2 · 人声 10.2 / 伴奏 15.4　（默认）</option>
+              <option value="UVR-MDX-NET-Voc_FT.onnx">UVR MDX-NET Voc FT · 人声 10.2</option>
+              <option value="UVR-MDX-NET-Inst_HQ_3.onnx">UVR MDX-NET Inst HQ 3 · 伴奏专用</option>
+              <option value="UVR_MDXNET_KARA_2.onnx">UVR MDX-NET KARA 2 · 卡拉OK</option>
+            </optgroup>
+          </select>
+        </div>
+        <div id="uvrModelHint" class="hint" style="margin-top:4px">RTX 4060 Laptop（8 GB）：12 分档大模型可跑，30 秒素材约 5 秒</div>
+        <div class="row"><label>输出</label>
+          <select id="uvrFormat">
+            <option value="WAV">WAV 无损</option>
+            <option value="FLAC">FLAC 无损压缩</option>
+            <option value="MP3">MP3 320k · 体积小</option>
+          </select>
+        </div>
+        <label class="chk"><input type="checkbox" id="uvrKeep"> 保留分离后的人声文件（默认处理完删除）</label>
+      </div>
+    </section>
+
+    <section class="card">
+      <div class="card-title">
+        <span>本地依赖</span>
+        <button id="btnUvrCheck" class="ghost small">检查依赖</button>
+      </div>
+      <div id="uvrDeps">
+        <div class="envgrid" id="envGridUvr">
+          <div class="er"><span class="dot"></span>分离环境<b>已装 · 6.9 GB</b></div>
+          <div class="er"><span class="dot"></span>模型<b>Kim Vocal 2 已下载</b></div>
+          <div class="er"><span class="dot"></span>GPU 加速<b>可用 · CUDA</b></div>
+          <div class="er"><span class="dot"></span>Python<b>3.13</b></div>
+        </div>
+      </div>
+      <div class="actions fill" style="margin-top:9px">
+        <button id="btnUvrInstall" class="small">一键安装环境</button>
+        <button id="btnUvrModel" class="small">下载模型</button>
+        <button id="btnCleanModels" class="ghost small" title="把已下载的模型文件删到回收站（模型列表元数据保留），下次用到时自动重新下载">
+          <svg class="ico" viewBox="0 0 16 16" aria-hidden="true"><path d="M2.6 4.4h10.8"/><path d="M6.1 4.4V2.9h3.8v1.5"/><path d="M3.9 4.4l.72 8.6c.05.62.57 1.1 1.19 1.1h4.38c.62 0 1.14-.48 1.19-1.1l.72-8.6"/><path d="M6.7 6.9v4.4M9.3 6.9v4.4"/></svg>
+          清理模型</button>
+      </div>
+      <label class="chk" style="margin-top:6px"><input type="checkbox" id="uvrGpu" checked>
+        GPU 加速（NVIDIA 显卡 · 装 CUDA 版，约 4 GB，分离快十几倍）</label>
+      <div class="row" style="margin-top:8px"><label>Python</label>
+        <input type="text" id="uvrPython" placeholder="留空自动探测（需 3.10~3.13）"></div>
+      <div class="hint">装环境是一次性的（CPU 版约 1.5 GB，GPU 版约 4 GB）。Python 需在 <b>3.10 ~ 3.13</b> 之间：
+        依赖的预编译包还没有 3.14 版本，版本不对会安装失败。分离在本地跑，音频不会因为这一步离开你的电脑。
+        速度取决于 CPU：约 0.3~1× 实时，10 分钟素材大概要 10~30 分钟；有独立显卡会快很多。
+        模型在首次使用该模型时自动下载（约 60~300 MB/个）。</div>
+    </section>
+
+    <section class="card">
+      <div class="card-title"><span>字幕动画</span></div>
+      <label class="chk" style="margin-top:0">
+        <input type="checkbox" id="skipPresetShort" checked> 短句不加动画预设
+      </label>
+      <div class="hint">句子短于 <b>0.6 秒</b>、又比预设动画本身还短时，套上预设只会一闪而过、或只演半个动画。
+        勾选后这类短句<b>完全不套预设</b>，直接静止显示到句尾 ——
+        图层里也不会留下多余的关键帧与动画器，后期改起来干净。</div>
+      <div class="hint">不勾则维持原样：把整段动画压缩进这一句，尽量演完整。</div>
+    </section>
+
+    <div class="footnote">开启后的流程：AE 导出音频 → 本地分离人声 → 只把人声送云端识别。</div>
+  </div>
+
+  <!-- ============================================================
+       标签 3 · 字幕样式
+       ============================================================ -->
+  <div class="page" id="pageStyle">
+
+    <section class="card">
+      <div class="card-title"><span>字幕预览</span><span class="sumb">近似，以 AE 实际渲染为准</span></div>
+      <div class="prevbox" id="prevBox">
+        <div class="t" id="prevText">各位观众，晚上好</div>
+        <div class="cap" id="prevCap">华文行楷 · 72 · #ffe600 · 预设：打字机</div>
+      </div>
+    </section>
+
+    <section class="card">
+      <div class="card-title"><span>文字</span></div>
+      <div class="row" style="margin-top:0"><label>排布</label>
+        <select id="mode">
+          <option value="layers">每句一层（改哪句点哪句）</option>
+          <option value="single">单层 + 关键帧（图层少）</option>
+        </select>
+      </div>
+
+      <div class="row"><label>图层命名</label>
+        <select id="nameMode" title="每句一层的图层名：用那句话的文字（好找）还是传统的前缀+序号">
+          <option value="text">文字命名（图层名=识别到的那句话）</option>
+          <option value="seq">前缀 + 序号（字幕_001）</option>
+        </select>
+      </div>
+      <div class="row" id="rowSubPrefix" style="display:none"><label>字幕前缀</label>
+        <input type="text" id="subPrefix" value="字幕" maxlength="20"
+          placeholder="字幕" title="前缀 + 序号命名时的前缀，如填 字幕B 得到 字幕B_001">
+      </div>
+
+      <div class="row"><label>字体</label>
+        <input type="text" id="fontQuery" placeholder="名称 / 拼音 / 首字母，如 ruizi、rz、华文、SimHei"
+               title="支持三种打法：字体名（华文行楷）、全拼（huawen）、首字母（hw 或 hwxk）">
+        <button id="btnPickFont" class="ghost small" title="从时间线上选中的文本图层读取字体、字号、颜色">拾取</button>
+      </div>
+      <div class="row">
+        <button id="btnFontRefresh" class="reloadBtn"
+          title="重新扫描 AE 的字体列表 —— 刚装了新字体、或列表看起来不全时点这里">刷新列表</button>
+        <select id="fontSelect">
+          <optgroup label="★ 收藏的字体">
+            <option value="STXingkai" selected>★ 华文行楷 · Regular</option>
+          </optgroup>
+          <optgroup label="字体">
+            <option value="SourceHanSansSC-Regular">思源黑体 · Regular</option>
+            <option value="SimHei">SimHei · Regular</option>
+            <option value="SimSun">宋体 · Regular</option>
+            <option value="MicrosoftYaHei">微软雅黑 · Regular</option>
+          </optgroup>
+        </select>
+        <button id="btnFavFont" class="favBtn on" title="收藏 / 取消收藏当前选中的字体">★</button>
+      </div>
+      <div id="fontCount" class="hint" style="margin-top:5px">AE 里共 220 个家族；已列出前 5 个（输入关键词可精确查找，支持拼音）</div>
+      <div id="fontNow" class="hint">字体：华文行楷（已收藏）</div>
+
+      <div class="row">
+        <div class="half"><label>字号</label><input type="number" id="fontSize" value="72" min="8" max="400"></div>
+        <div class="half"><label>颜色</label><input type="color" id="color" value="#ffe600"></div>
+      </div>
+
+      <label class="chk" title="有些识别模型会给文本带上标点符号。勾上后字幕、.srt、.json 都不含标点">
+        <input type="checkbox" id="stripPunct"> 去掉字幕里的标点符号
+      </label>
+      <div class="hint">勾选后<b>要重新生成一次字幕才生效</b>——已经生成的字幕不会自动更新。
+        数字里的小数点（3.14）与千分位（1,000）会被保留，不会误删。</div>
+    </section>
+
+    <section class="card">
+      <div class="card-title"><span>文字动画预设</span></div>
+      <div class="row" style="margin-top:0"><label>搜索</label>
+        <input type="text" id="presetQuery" placeholder="预设名 / 分类 / 拼音，如 dzj、飞入、Animate In"
+               title="支持三种打法：预设名（打字机）、全拼（daziji）、首字母（dzj）">
+      </div>
+      <div class="row"><label>预设</label>
+        <select id="presetSelect">
+          <option value="">不使用预设</option>
+          <optgroup label="★ 收藏的预设">
+            <option value="/p/打字机.ffx" selected>★ 打字机</option>
+          </optgroup>
+          <optgroup label="AE 自带文字预设 · Animate In">
+            <option value="/p/飞入.ffx">飞入</option>
+            <option value="/p/淡入.ffx">淡入</option>
+            <option value="/p/缓慢淡入.ffx">缓慢淡入</option>
+          </optgroup>
+          <optgroup label="AE 自带文字预设 · Animate Out">
+            <option value="/p/飞出.ffx">飞出</option>
+            <option value="/p/淡出.ffx">淡出</option>
+          </optgroup>
+        </select>
+        <button id="btnFavPreset" class="favBtn on" title="收藏 / 取消收藏当前选中的预设">★</button>
+      </div>
+      <div class="actions fill" style="margin-top:6px">
+        <button id="btnPresetFile" class="small">浏览预设文件…</button>
+        <button id="btnPresetDir" class="small">打开预设文件夹</button>
+      </div>
+      <div id="presetHint" class="hint">共 312 个 · 「动画 > 保存动画预设」另存的会归到「我的预设」。每句一层时，预设的关键帧会自动平移到该句的出场时刻。</div>
+      <div id="presetWarn" class="tip" style="display:none">
+        实测 AE 自带的文字预设都通过「文本动画器」实现，<b>不影响字幕居中</b>；
+        个别预设若改写了图层位置，落点会由预设决定，面板就不再强制居中。
+      </div>
+    </section>
+
+    <section class="card">
+      <div class="card-title"><span>位置</span><span class="sumb">固定居中</span></div>
+      <div class="hint" style="margin-top:0">字幕固定在画面正中央（水平垂直都居中），无需调整。
+        「单层 + 关键帧」模式下各行长短差异大时可能略有偏移，介意就用「每句一层」。</div>
+    </section>
+
+    <section class="card">
+      <div class="card-title"><span>字幕体检</span></div>
+      <div class="hint" style="margin-top:0">
+        「明明建了图层，画面却是空的」时点这里。检查选中的合成里每个字幕层：
+        是否被<b>上方视频层完全盖住</b>（素材后放进合成时最常见）、文字是否为空、
+        图层是否被关闭、不透明度是否为 0、出入点是否零时长。<b>只读，不改任何东西。</b>
+      </div>
+      <div class="actions fill" style="margin-top:8px">
+        <button id="btnSubCheck" class="small">检查字幕是否可见</button>
+        <button id="btnFixKeys" class="ghost small">修复动画关键帧错位</button>
+      </div>
+      <div class="hint">「修复动画关键帧错位」用于这种情形：套了动画预设（打字机一类）后字幕整句看不见,
+        而图层不透明度是 100%、文字也在 —— 那是预设的「范围选择器」关键帧落在了句子时间之外。
+        它会把这些图层的关键帧整体搬回各自的时间范围（只动明显错位的层，进撤销栈，Ctrl+Z 可撤回）。</div>
+      <div id="subCheckOut"></div>
+    </section>
+
+  </div>
+
+  <!-- ============================================================
+       标签 4 · 设置
+       ============================================================ -->
+  <div class="page" id="pageSet">
+
+    <div class="hint" style="margin-top:0">改动即时保存，关掉面板也不会丢。</div>
+
+    <section class="card">
+      <div class="card-title"><span>识别选项</span></div>
+      <div class="row" style="margin-top:0"><label>每行字数</label>
+        <input type="number" id="maxChars" value="16" min="6" max="40"></div>
+      <label class="chk"><input type="checkbox" id="dropSuspect"> 丢弃疑似误识别段（默认只标记不删）</label>
+      <label class="chk"><input type="checkbox" id="snapSpeech" checked> 按真实语音时长校正每句时间</label>
+      <div class="hint" style="margin-top:2px">识别后会对音频做一次静音检测（用自带 ffmpeg，不额外上传），
+        把每句起止校正到真实说话区间 —— 解决"说话没完字幕就没了 / 字幕还在但话已说完"。
+        只做小幅校正（±0.8 秒内、不短于 0.35 秒、不与相邻句重叠）。</div>
+      <label class="chk"><input type="checkbox" id="limitOn" checked> 限制单次处理时长</label>
+      <div class="row"><label>上限</label>
+        <input type="number" id="limitMin" value="10" min="1" max="120">
+        <span class="hint" style="margin:0;flex:0 0 auto">分钟</span></div>
+
+      <div class="sect">识别引擎与密钥</div>
+      <div class="row"><label>引擎</label>
+        <select id="asrProfile">
+          <option value="siliconflow" selected>硅基流动 · 免费档（不收费不限量 · 国内直连）</option>
+          <option value="tencent">腾讯云 · 每月 10 小时免费（带时间戳）</option>
+          <option value="groq">Groq · 免费层 8 小时/日（带时间戳 · 需代理）</option>
+          <option value="custom">自建 / 其他 OpenAI 兼容（本地跑 = 真·免费）</option>
+        </select>
+      </div>
+      <div class="hint" id="asrHint">免费档默认模型 SenseVoiceSmall，中文好、但不返回时间戳（会自动走时间轴重建）。</div>
+
+      <div id="asrKeyRow">
+        <div class="row"><label>API Key</label>
+          <div class="keyrow" id="keyRowApi">
+            <input type="password" id="asrApiKey" placeholder="粘贴服务商的密钥" autocomplete="off"
+                   >
+            <button class="ghost small eye" id="btnKeyEyeApi" title="显示 / 隐藏密钥，便于粘贴后核对">显示</button>
+          </div>
+        </div>
+      </div>
+      <div id="asrPairRow" style="display:none">
+        <div class="row"><label>SecretId</label>
+          <input type="text" id="asrSecretId" placeholder="腾讯云 SecretId" autocomplete="off"></div>
+        <div class="row"><label>SecretKey</label>
+          <div class="keyrow" id="keyRowSecret">
+            <input type="password" id="asrSecretKey" placeholder="腾讯云 SecretKey" autocomplete="off">
+            <button class="ghost small eye" id="btnKeyEyeSecret" title="显示 / 隐藏密钥，便于粘贴后核对">显示</button>
+          </div>
+        </div>
+      </div>
+      <div class="row" id="asrConsoleRow"><label></label>
+        <button id="btnAsrTest" class="ghost small">测试密钥</button>
+        <button id="btnAsrConsole" class="ghost small">去申请密钥</button></div>
+
+      <details>
+        <summary class="hint" style="cursor:pointer">高级（模型 / 服务地址 / 提示词）</summary>
+        <div class="row"><label>模型</label>
+          <input type="text" id="asrModel" placeholder="留空用该引擎的默认模型">
+        </div>
+        <div class="row"><label>挑一个</label>
+          <select id="asrModelPick">
+            <option value="">（点「测试密钥」向服务商拉取可用模型）</option>
+            <option value="FunAudioLLM/SenseVoiceSmall">FunAudioLLM/SenseVoiceSmall · 免费 · 无时间戳</option>
+            <option value="Qwen/Qwen3-ASR-1.7B">Qwen/Qwen3-ASR-1.7B · 免费 · 中文更强</option>
+            <option value="TeleAI/TeleSpeechASR">TeleAI/TeleSpeechASR · 免费 · 中文</option>
+          </select>
+        </div>
+        <div class="hint" id="asrModelHint"></div>
+        <div class="row"><label>服务地址</label>
+          <input type="text" id="asrBaseUrl" placeholder="留空用默认；自建服务才需要填">
+        </div>
+        <div class="row"><label>提示词</label>
+          <input type="text" id="asrPrompt" placeholder="人名 / 专有名词，能明显提升准确率">
+        </div>
+        <label class="chk"><input type="checkbox" id="asrChunk" checked>
+          允许按静音切块识别（免费引擎不返回时间戳时，靠它重建时间轴）</label>
+      </details>
+
+      <div class="hint" id="asrQuota">免费档：不收费不限量（以服务商页面口径为准，可能调整）</div>
+      <div class="hint">「测试密钥」会顺带向服务商拉取<strong>当前可用的模型清单</strong>，填进上面「挑一个」里
+        —— 免费模型各家都在变，实时问它比写死一份清单准。</div>
+      <div class="hint">密钥只存在本机面板存档里（<span class="mono">明文</span>），不会发给除所选服务商以外的任何方。
+        不想填面板也可以改用环境变量 <span class="mono">AESUB_API_KEY</span>。</div>
+    </section>
+
+    <section class="card">
+      <div class="card-title"><span>输出与日志</span></div>
+      <div class="row" style="margin-top:0"><label>输出目录</label>
+        <input type="text" id="outDir" placeholder="留空则跟随工程目录"></div>
+      <label class="chk"><input type="checkbox" id="keepAudio"> 保留中间音频（排障用，默认处理完删除）</label>
+      <div class="actions" style="margin-top:8px">
+        <button id="btnTest" class="ghost small">试导出</button>
+        <button id="btnRebuild" class="ghost small">用已有字幕建图层</button>
+      </div>
+      <div class="hint">中间音频是 AE 导出的临时无损音频，放在输出目录的 <span class="mono">_中间音频\</span> 下，
+        识别完成后自动删除（约 188 KB/秒）。</div>
+      <div class="hint">「试导出」只导出音频、不上传云端（零成本验证导出环节）；
+        「用已有字幕建图层」直接拿输出目录里同名的 <span class="mono">.json</span> 建图层，不重新识别。</div>
+    </section>
+
+    <section class="card">
+      <div class="card-title"><span>环境与诊断</span></div>
+      <div class="envgrid" id="envGridSet" style="margin-top:0">
+        <div class="er"><span class="dot"></span>Node<b>22.22.2 · 随包自带</b></div>
+        <div class="er"><span class="dot"></span>ffmpeg<b>已就位 · LGPL 构建</b></div>
+        <div class="er"><span class="dot"></span>面板内 Node<b>已启用</b></div>
+        <div class="er"><span class="dot"></span>流水线<b>已探测</b></div>
+      </div>
+      <div class="row"><label>Node</label>
+        <input type="text" id="nodePath" placeholder="留空自动检测（需 18 及以上）"></div>
+      <div class="row"><label>流水线</label><input type="text" id="pipelineDir" placeholder="留空自动探测"></div>
+      <div class="row"><label>数据目录</label><input type="text" id="dataDir" placeholder="留空用「我的文档/AE自动字幕」"></div>
+      <div class="hint">数据目录存放<strong>分离环境</strong>（python-env，约 7 GB）与<strong>下载的模型</strong>
+        —— 刻意不放在插件目录里：插件本体保持小巧、想卸载就删掉这个目录。
+        想省 C 盘空间就改到别的盘（改完需要重新装一次环境）。</div>
+      <div class="actions" style="margin-top:8px">
+        <button id="btnProbe" class="ghost small">重新检测环境</button>
+        <button id="btnReset" class="ghost small">恢复默认</button>
+        <button id="btnSelfTest" class="ghost small">跑自检</button>
+      </div>
+      <div id="envDetail" class="hint mono"></div>
+      <div class="hint">「跑自检」会安全地验证字体检索、时间范围探测、字幕居中。
+        不导入素材、不新建合成，临时文本图层量完即删。</div>
+    </section>
+
+    <div class="about">
+      Noniika v0.9.0 · 基础版<br>
+      作者：𝙁𝙖𝙙𝙚
+    </div>
+
+  </div>
+
+</div>
+
+<!-- 弹窗 1 · 落轨询问：推荐（primary）→ 替代（ghost）→ 取消（最右）；Esc/遮罩 = 取消 -->
+<div id="askOverlay" class="overlay" style="display:none">
+  <div class="askBox">
+    <div class="askTitle">分离出的人声怎么放？</div>
+    <div class="askBody" id="askBody">选中的是音频素材「建军大业_片段03.wav」。分离出的人声可以<b>替换</b>它（时间线更干净），或<b>放到它下方</b>（原音频保留作对照）。</div>
+    <div class="askBtns">
+      <button id="askReplace" class="primary small">替换原音频</button>
+      <button id="askBelow" class="ghost small">放到它下方</button>
+      <button id="askCancel" class="ghost small">取消</button>
+    </div>
+    <div id="askHint" class="hint">按 Esc 或点击遮罩 = 取消，本次不做任何改动。</div>
+  </div>
+</div>
+
+<!-- 弹窗 2 · 清理确认：清单可勾选，确认前看到的就是将被删的东西 -->
+<div id="cfmOverlay" class="overlay" style="display:none">
+  <div class="askBox wide">
+    <div class="askTitle" id="cfmTitle">确认清理插件文件</div>
+    <div class="askBody" id="cfmBody">
+      <div class="cleanGroup">
+        <input type="checkbox" checked>
+        <span class="cgBody"><span class="cgName">中间音频</span><span class="cgSize">2.3 MB</span>
+          <span class="cgNote">输出目录\_中间音频\ —— AE 导出的临时无损音频，删后下次重新导出即可</span></span>
+      </div>
+      <div class="cleanGroup">
+        <input type="checkbox" checked>
+        <span class="cgBody"><span class="cgName">人声分离产物</span><span class="cgSize">48.6 MB</span>
+          <span class="cgNote">输出目录\_人声分离\ —— 删后「复用已有人声」不可用，需重新分离</span></span>
+      </div>
+      <div class="cleanGroup">
+        <input type="checkbox" checked>
+        <span class="cgBody"><span class="cgName">临时文件</span><span class="cgSize">1.1 MB</span>
+          <span class="cgNote">系统临时目录里本插件产生的文件（aesub-* 等）</span></span>
+      </div>
+      <div class="cleanGroup">
+        <input type="checkbox">
+        <span class="cgBody"><span class="cgName">字幕成品文件</span><span class="cgSize">0.2 MB</span>
+          <span class="cgNote">输出目录里的 .srt / .json / .txt —— 删掉后「用已有字幕建图层」需要重新识别（默认不勾）</span></span>
+      </div>
+      <div class="cleanGroup locked">
+        <input type="checkbox" disabled>
+        <span class="cgBody"><span class="cgName">分离模型</span><span class="cgSize">934.5 MB</span>
+          <span class="cgNote">不在这里清理 —— 模型有独立的「清理模型」按钮（人声分离页）</span></span>
+      </div>
+      <div class="cleanTotal">将删除 3 组 · 共 52.0 MB<span class="cleanSub">（全部走回收站，可还原）</span></div>
+    </div>
+    <label class="chk" id="cfmPermWrap" style="display:none">
+      <input type="checkbox" id="cfmPerm"> 放不进回收站的项改为彻底删除（不可恢复）
+    </label>
+    <div class="askBtns">
+      <button id="cfmOk" class="primary small">确认清理</button>
+      <button id="cfmCancel" class="ghost small">取消</button>
+    </div>
+    <div id="cfmHint" class="hint">删除的文件会进回收站，随时可以还原。</div>
+  </div>
+</div>
+
+<!-- 弹窗 3 · 同名产物：推荐复用（primary），覆盖降级为 ghost -->
+<div id="owOverlay" class="overlay" style="display:none">
+  <div class="askBox">
+    <div class="askTitle">输出目录里已有同名产物</div>
+    <div class="askBody" id="owBody">输出目录里已有「建军大业_片段03_人声.wav」（10 分钟前分离）。可以直接用它接着识别，或重新分离覆盖它。</div>
+    <div class="askBtns">
+      <button id="owReuse" class="primary small">跳过分离，用已有的人声</button>
+      <button id="owOverwrite" class="ghost small">覆盖旧产物</button>
+      <button id="owCancel" class="ghost small">取消</button>
+    </div>
+    <div id="owHint" class="hint">推荐跳过：同一份素材重复分离结果基本一致，白等 10~30 分钟。</div>
+  </div>
+</div>
+
+<!-- 设计稿专用演示脚本（纯前端；实施时删除，恢复生产 script 标签） -->
+<script src="demo.js"></script>
+</body>
+</html>

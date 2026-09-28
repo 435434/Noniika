@@ -1,0 +1,265 @@
+/*
+ * style-v2.css —— Noniika v0.9.0 · UI 改版覆盖层（待批实施稿）
+ * ============================================================
+ * 用法：追加到 cep/css/style.css 末尾（或在其后 <link> 引入）。
+ * 每个区块对应 设计上下文 §4.2 的一项提案 —— 批准哪条留哪条，
+ * 整块删除即"按条撤销"，互不影响。
+ * 红线遵守：语义色一律"圆点 + 文字"成对出现；新增颜色只走 token / 提案色值；
+ * 不引入任何新 input 类型（§7.3），故无需回补表单选择器。
+ * ============================================================
+ */
+
+/* ============================================================
+   A. 视觉层（提案 7 · 圆角 / 高光 / 焦点 / 主按钮渐变）
+   ============================================================ */
+:root { --radius: 8px; }
+
+.app { padding: 12px 12px 8px; }
+
+header h1 { font-size: 16px; letter-spacing: .5px; }
+
+.card {
+  border-color: #414141;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .03);
+}
+
+.card-title { color: #969696; letter-spacing: .5px; margin-bottom: 8px; }
+.card-title > span:first-child::before {
+  content: "";
+  display: inline-block;
+  width: 3px; height: 10px;
+  border-radius: 2px;
+  background: var(--accent);
+  margin-right: 6px;
+  vertical-align: -1px;
+}
+
+button { border-radius: 7px; }
+input[type="text"],
+input[type="number"],
+input[type="password"],
+select { border-radius: 7px; }
+
+/* 键盘焦点（现状缺失，§5.1 必须补）：2px 外描边 + 1px offset */
+button:focus-visible,
+select:focus-visible,
+input:focus-visible,
+summary:focus-visible {
+  outline: 2px solid #4a86d8;
+  outline-offset: 1px;
+}
+
+button.primary {
+  background: linear-gradient(180deg, #3a74c4, #2e5c9a);
+  border-color: #4a86d8;
+}
+button.primary:hover:not(:disabled) {
+  background: linear-gradient(180deg, #407fd4, #3265a8);
+}
+
+button.runbtn { padding: 10px 8px; }
+button.runbtn b { font-size: 13.5px; }
+button.runbtn > span { font-size: 10.5px; }
+
+label.chk { line-height: 1.5; }
+
+/* ============================================================
+   B. 识别引擎状态条（提案 1 · 解 P1/P2）
+   位置：首页 header 之下、素材卡之上 —— "我现在用的是谁"置顶可见
+   ============================================================ */
+.engbar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 11px;
+  background: var(--panel2);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+}
+.engbar .dot {
+  width: 8px; height: 8px;
+  border-radius: 50%;
+  background: var(--ok);
+  flex: 0 0 auto;
+  box-shadow: 0 0 5px rgba(125, 219, 163, .55);
+}
+.engbar.bad { border-color: #5a2020; background: #331d1d; }
+.engbar.bad .dot { background: var(--err); box-shadow: none; }
+.engbar .t {
+  flex: 1 1 auto;
+  min-width: 0;
+  font-size: 11.5px;
+  color: var(--fg-dim);
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+.engbar .t b { color: var(--fg); font-weight: 500; }
+.engbar .chg {
+  flex: 0 0 auto;
+  font-size: 11px;
+  color: #8fbef5;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 2px 4px;
+  border-radius: 4px;
+}
+.engbar .chg:hover { text-decoration: underline; }
+
+/* ============================================================
+   C. 流程步骤条（提案 2 · 解 P3）
+   导出 › 分离 › 识别 › 建层 四格；pending / on / done 三态。
+   与 status 行同源（{step, message, percent} 事件驱动，§5.2）。
+   ============================================================ */
+.steps { display: flex; gap: 4px; align-items: stretch; }
+.steps .st {
+  flex: 1 1 0;
+  min-width: 0;
+  text-align: center;
+  font-size: 10px;
+  color: var(--fg-hint);
+  padding: 5px 2px 6px;
+  background: var(--panel);
+  border: 1px solid #363636;
+  border-radius: 7px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.steps .st.on {
+  color: #dceafc;
+  border-color: #4a86d8;
+  background: #26374e;
+}
+.steps .st.done {
+  color: var(--ok);
+  border-color: #3a5a45;
+  background: #243428;
+}
+.steps .sep {
+  align-self: center;
+  color: #5c5c5c;
+  font-size: 9px;
+  flex: 0 0 auto;
+}
+
+/* ============================================================
+   D. 结果统计网格 + 产物 chips（提案 3）
+   结果卡内：2×2 关键数字 + 产物一键直达
+   ============================================================ */
+.statgrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+  margin-top: 9px;
+}
+.statgrid .cell {
+  background: var(--panel2);
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  padding: 5px 9px 6px;
+  min-width: 0;
+}
+.statgrid .k { font-size: 10px; color: var(--fg-hint); }
+.statgrid .v {
+  font-size: 12.5px;
+  color: var(--fg);
+  margin-top: 1px;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.chips { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 9px; }
+.chips .chip {
+  font-size: 10.5px;
+  padding: 3px 10px;
+  border: 1px solid var(--line);
+  border-radius: 11px;
+  color: #9fc3ec;
+  background: #282828;
+  cursor: pointer;
+}
+.chips .chip:hover { border-color: #5a7ba6; }
+
+/* ============================================================
+   E. 字幕预览框（提案 4 · 解 P4）
+   样式页顶部：按当前字体 / 字号 / 颜色近似渲染示例句。
+   定位：功能组件（不是插画），必须标注"近似，以 AE 为准"（§3.5）。
+   ============================================================ */
+.prevbox {
+  background: #141414;
+  border: 1px solid #383838;
+  border-radius: 7px;
+  padding: 16px 8px 10px;
+  text-align: center;
+}
+.prevbox .t {
+  color: #ffe600;
+  font-size: 36px;
+  line-height: 1.25;
+  font-family: "KaiTi", "STKaiti", serif;
+  text-shadow: 0 2px 8px rgba(0, 0, 0, .6);
+  word-break: break-all;
+}
+.prevbox .cap { font-size: 10px; color: var(--fg-hint); margin-top: 8px; }
+
+/* ============================================================
+   F. 依赖 / 环境状态网格（提案 5 · 解 P5）
+   分离页（环境/模型/GPU/Python）与设置页（Node/ffmpeg/面板Node/流水线）
+   ============================================================ */
+.envgrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 5px;
+  margin-top: 8px;
+}
+.envgrid .er {
+  display: flex;
+  gap: 7px;
+  align-items: center;
+  font-size: 11px;
+  color: var(--fg-dim);
+  background: var(--panel2);
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  padding: 5px 9px;
+  min-width: 0;
+}
+.envgrid .dot {
+  width: 6px; height: 6px;
+  border-radius: 50%;
+  background: var(--ok);
+  flex: 0 0 auto;
+  margin-top: 0;
+}
+.envgrid .er.off .dot { background: #666; }
+.envgrid .er.warn .dot { background: var(--warn); }
+.envgrid .er.bad .dot { background: var(--err); }
+.envgrid .er b {
+  color: var(--fg);
+  font-weight: 500;
+  margin-left: auto;
+  font-size: 10.5px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* ============================================================
+   G. 密钥显隐（提案 6 · 解 P6）
+   ============================================================ */
+.keyrow { display: flex; gap: 6px; align-items: stretch; flex: 1 1 auto; min-width: 0; }
+.keyrow input { flex: 1 1 auto; min-width: 0; }
+.keyrow .eye { flex: 0 0 46px; white-space: nowrap; padding: 0 4px; }
+
+/* ============================================================
+   H. 窄面板降级（360×420 最小尺寸，§6 / §9.5）
+   ============================================================ */
+@media (max-width: 380px) {
+  .statgrid,
+  .envgrid { grid-template-columns: 1fr; }
+  .engbar .t { white-space: normal; }
+  .steps .st { font-size: 9px; }
+}

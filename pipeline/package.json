@@ -1,0 +1,21 @@
+{
+  "name": "ae-subtitle-pipeline",
+  "version": "0.9.0",
+  "private": true,
+  "type": "module",
+  "description": "Noniika · Node 流水线（音频预处理 → 云端 ASR → 字幕 JSON）",
+  "main": "cli.js",
+  "engines": {
+    "node": ">=18"
+  },
+  "scripts": {
+    "demo": "node cli.js --in ../test/input/无上光荣.mp4 --out ../test/output"
+  },
+  "dependencies": {
+    "@ffmpeg-installer/ffmpeg": "^1.1.0"
+  },
+  "comments": {
+    "whyNoAsrSdk": "刻意不依赖任何 ASR SDK：识别通过 lib/providers/ 里的纯 HTTP 适配器完成。原先的 jianying-subtitle 已移除 —— 它是 GPL-3.0-only 且调用逆向接口，不能用于商业分发（详见项目根 THIRD-PARTY-NOTICES.md）。",
+    "whyFfmpegStill": "@ffmpeg-installer 只作为开发机上的兜底来源；分发包用的是 pipeline/vendor/ffmpeg 里的 LGPL 构建（查找顺序见 lib/paths.js）。"
+  }
+}

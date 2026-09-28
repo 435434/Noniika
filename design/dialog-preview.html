@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html lang="zh-CN"><head><meta charset="utf-8">
+<title>询问弹层预览</title>
+<link rel="stylesheet" href="css/style.css">
+<style>
+  body { background: var(--bg); padding: 24px; font-family: "Microsoft YaHei", sans-serif; }
+  .overlay { position: static; background: transparent; padding: 0; }
+  .askBox { margin: 0 auto; }
+</style>
+</head><body>
+<!-- 运行时询问弹层：分离出的人声怎么落轨（仅在源素材是纯音频时出现） -->
+<div id="askOverlay" class="overlay" style="display:flex">
+  <div class="askBox">
+    <div class="askTitle">分离出的人声怎么放？</div>
+    <div class="askBody" id="askBody">选中的「口播录音.wav」是音频素材。分离出的人声要替换它，还是放到它下方？</div>
+    <div class="askBtns">
+      <button id="askReplace" class="primary small">替换原音频</button>
+      <button id="askBelow" class="ghost small">放到它下方</button>
+      <button id="askCancel" class="ghost small">取消</button>
+    </div>
+    <div id="askHint" class="hint"><b>替换原音频</b>：删掉原层，人声占据它原来的位置（原素材仍在项目面板里，可随时拖回）。<br><b>放到它下方</b>：原层保留并照旧发声，人声作为独立一条轨道，方便你在混剪里单独取用。</div>
+  </div>
+</div>
+</body></html>

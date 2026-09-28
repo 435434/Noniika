@@ -1,0 +1,80 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Noniika · CEP 扩展清单
+  ==========================================================
+  参照本机已验证可用的第三方面板（JerryFlow V2）写法：
+  用较低的 manifest / CSXS 版本声明以获得最大兼容性 —— CEP 只校验
+  "已安装的 CSXS 版本 >= 声明的版本"，声明低值最安全。
+  Host Version 是"最低版本"语义，填 13.0（CC 2014）即表示 AE 13 及以上都能加载；
+  与代码实际要求一致：脚本用了 CC 2014 才引入的 OutputModule.setSetting/setSettings。
+-->
+<ExtensionManifest
+	Version="5.0"
+	ExtensionBundleId="com.aesub.autosubtitle"
+	ExtensionBundleVersion="0.9.1"
+	ExtensionBundleName="Noniika"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+
+	<ExtensionList>
+		<Extension Id="com.aesub.autosubtitle.panel" Version="0.9.1" />
+	</ExtensionList>
+
+	<ExecutionEnvironment>
+		<HostList>
+			<Host Name="AEFT" Version="13.0" />
+		</HostList>
+
+		<LocaleList>
+			<Locale Code="All" />
+		</LocaleList>
+
+		<RequiredRuntimeList>
+			<RequiredRuntime Name="CSXS" Version="5.0" />
+		</RequiredRuntimeList>
+	</ExecutionEnvironment>
+
+	<DispatchInfoList>
+		<Extension Id="com.aesub.autosubtitle.panel">
+			<DispatchInfo>
+
+				<Resources>
+					<MainPath>./index.html</MainPath>
+					<ScriptPath>./jsx/ae-bridge.jsx</ScriptPath>
+					<CEFCommandLine>
+						<!-- 面板内需要 Node 才能拉起外部 Node 进程跑流水线 -->
+						<Parameter>--enable-nodejs</Parameter>
+						<!-- 让 Node 的全局变量（require / process）与页面共享作用域 -->
+						<Parameter>--mixed-context</Parameter>
+						<Parameter>--allow-file-access-from-files</Parameter>
+						<Parameter>--allow-file-access</Parameter>
+						<!-- 试验参数（2026-09-18 排查「输入法候选窗跑到屏幕左上角」时加的）：
+						     关掉面板的 GPU 合成，缓解渲染与输入法坐标同步的延迟。尚未验证结果，
+						     若确认无用，整行删掉即可（不影响其它功能）。 -->
+						<Parameter>--disable-gpu</Parameter>
+					</CEFCommandLine>
+				</Resources>
+
+				<Lifecycle>
+					<AutoVisible>true</AutoVisible>
+				</Lifecycle>
+
+				<UI>
+					<Type>Panel</Type>
+					<Menu>Noniika</Menu>
+					<Geometry>
+						<Size>
+							<Height>720</Height>
+							<Width>460</Width>
+						</Size>
+						<MinSize>
+							<Height>420</Height>
+							<Width>360</Width>
+						</MinSize>
+					</Geometry>
+				</UI>
+
+			</DispatchInfo>
+		</Extension>
+	</DispatchInfoList>
+
+</ExtensionManifest>

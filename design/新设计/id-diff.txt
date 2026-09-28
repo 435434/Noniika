@@ -1,0 +1,105 @@
+全新 UI id 校验
+
+旧 121 个 · 新 157 个 · 缺失 0 · 重复 0
+
+新增 id：
++ btnEngChange
++ btnKeyEyeApi
++ btnKeyEyeSecret
++ chipJson
++ chipSrt
++ chipTxt
++ chipsRow
++ engBar
++ engBarDot
++ engBarText
++ envGridSet
++ envGridUvr
++ keyRowApi
++ keyRowSecret
++ prevBox
++ prevCap
++ prevText
++ readyCard
++ readySel
++ readyStyle
++ readyUvr
++ stAsr
++ stExport
++ stLayer
++ stSep
++ statChars
++ statEngine
++ statGrid
++ statSent
++ statTimeline
++ steps
++ tabHome
++ tabSet
++ tabStyle
++ tabUvr
++ tabs
+
+==================================================================
+全新 UI（design/新设计）校验
+==================================================================
+【1】id 交叉（cep/index.html 的 121 个 id 必须一个不少）
+  ✅ 旧 121 个 → 新 157 个
+  ✅ 缺失 = 0
+  ✅ 无重复 id
+  新增 id（36 个）: btnEngChange, btnKeyEyeApi, btnKeyEyeSecret, chipJson, chipSrt, chipTxt, chipsRow, engBar, engBarDot, engBarText, envGridSet, envGridUvr, keyRowApi, keyRowSecret, prevBox, prevCap, prevText, readyCard, readySel, readyStyle, readyUvr, stAsr, stExport, stLayer, stSep, statChars, statEngine, statGrid, statSent, statTimeline, steps, tabHome, tabSet, tabStyle, tabUvr, tabs
+
+【2】结构与红线
+  ✅ 4 页容器
+  ✅ 3 弹窗
+  ✅ 标签栏 4 个 tab
+  ✅ 首页 primary 恰好 1 个
+  ✅ 弹窗 askOverlay primary 恰好 1 个
+  ✅ 弹窗 cfmOverlay primary 恰好 1 个
+  ✅ 弹窗 owOverlay primary 恰好 1 个
+  ✅ 无新 input 类型（['checkbox', 'color', 'number', 'password', 'text']）
+  ✅ 无 <datalist>
+  ✅ 无 <a 链接
+  ✅ 花体只在 h1 / about（各 1 次）
+  ✅ 引用全新 style.css（非覆盖层）
+  ✅ 无旧版返回按钮（标签栏已取代）
+  ✅ 28+2 个持久化设置控件全在位
+
+【3】style.css（全新文件）
+  ✅ 花括号配对
+  ✅ 类 .tabs 已定义
+  ✅ 类 .tab 已定义
+  ✅ 类 .rrow 已定义
+  ✅ 类 .rk 已定义
+  ✅ 类 .rv 已定义
+  ✅ 类 .rlink 已定义
+  ✅ 类 .steps 已定义
+  ✅ 类 .statgrid 已定义
+  ✅ 类 .chips 已定义
+  ✅ 类 .prevbox 已定义
+  ✅ 类 .envgrid 已定义
+  ✅ 类 .keyrow 已定义
+  ✅ 类 .stateRow 已定义
+  ✅ 类 .dot 已定义
+  ✅ 类 .cleanGroup 已定义
+  ✅ 类 .tip 已定义
+  ✅ 类 .runbtn 已定义
+  ✅ 类 .favBtn 已定义
+  ✅ 类 .reloadBtn 已定义
+  ✅ 类 .indent 已定义
+  ✅ 类 .overlay 已定义
+  ✅ 类 .askBox 已定义
+  ✅ 类 .log 已定义
+  ✅ color-scheme: dark
+  ✅ password 在表单选择器里
+  ✅ 深色滚动条
+  ✅ :focus-visible
+  ✅ 360 降级 @media
+  ✅ 动画 keyframes（pgIn/pgBack）
+  ✅ 动画无 fill-mode 属性（IME 防线；注释里提及不算）
+
+【4】demo.js / 预览.html
+  ✅ demo.js 无后端调用
+  ✅ 评审台引用 index.html
+
+判定: 全部通过

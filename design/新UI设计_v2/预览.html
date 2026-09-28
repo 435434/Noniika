@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>𝙉𝙤𝙣𝙞𝙞𝙠𝙖 · v2 实施稿评审台</title>
+<!--
+  评审外壳（不进面板）：iframe 里跑的是 design/新UI设计_v2/index.html
+  —— 即 cep/index.html 的待批替代稿 + style-v2.css 覆盖层。
+  状态切换通过 URL 参数传递（不跨 frame 脚本，file:// 与 http:// 都能用）。
+-->
+<style>
+body { background:#171717; font:13px/1.6 "Segoe UI","Microsoft YaHei",sans-serif; color:#c9c9c9; margin:0; }
+.docbar { position:sticky; top:0; z-index:50; background:#1d1d1d; border-bottom:1px solid #333; padding:9px 16px; display:flex; flex-wrap:wrap; gap:7px 14px; align-items:center; }
+.docbar b.tt { color:#eee; font-size:14px; }
+.docbar .lbl { font-size:11px; color:#8a8a8a; }
+.docbar .grp { display:flex; gap:5px; align-items:center; }
+.docbar button { font:12px/1 "Segoe UI","Microsoft YaHei",sans-serif; padding:6px 11px; border-radius:6px; border:1px solid #3d3d3d; background:#262626; color:#bbb; cursor:pointer; }
+.docbar button:hover { border-color:#5a5a5a; color:#ddd; }
+.docbar button.on { background:#2f5f9e; border-color:#4a86d8; color:#fff; }
+.stage { display:flex; gap:24px; padding:20px 16px 60px; align-items:flex-start; justify-content:center; flex-wrap:wrap; }
+.panelWrap { flex:0 0 auto; }
+.panelTitle { text-align:center; font-size:11px; color:#777; margin:0 0 8px; }
+.frame { width:460px; margin:0 auto; border:1px solid #3a3a3a; border-radius:10px; overflow:hidden; box-shadow:0 10px 40px rgba(0,0,0,.5); background:#232323; }
+.frame.w360 { width:360px; }
+.frameInner { height:720px; }
+.frameInner iframe { width:100%; height:100%; border:0; display:block; }
+.notes { flex:0 1 430px; min-width:300px; max-width:480px; }
+.notes h3 { font-size:13px; color:#ddd; margin:4px 0 10px; }
+.noteItem { background:#202020; border:1px solid #333; border-left:3px solid #4a9eff; border-radius:6px; padding:8px 12px; margin-bottom:8px; font-size:12px; line-height:1.65; color:#b5b5b5; }
+.noteItem b { color:#e8e8e8; }
+.noteItem .tag2 { display:inline-block; font-size:10px; padding:0 6px; border-radius:8px; background:#26374e; color:#9fc3ec; margin-right:6px; }
+.foot { font-size:11px; color:#777; margin-top:14px; line-height:1.7; }
+</style>
+</head>
+<body>
+
+<div class="docbar">
+  <b class="tt">𝙉𝙤𝙣𝙞𝙞𝙠𝙖 · v2 实施稿评审台</b>
+  <span class="lbl">源文件未动 · 7 项新组件全部就位</span>
+  <div class="grp"><span class="lbl">页面</span>
+    <button data-q="page=home" class="on">首页</button>
+    <button data-q="page=uvr">人声分离</button>
+    <button data-q="page=style">字幕样式</button>
+    <button data-q="page=set">设置</button>
+  </div>
+  <div class="grp"><span class="lbl">状态</span>
+    <button data-q="state=ready" class="on">就绪</button>
+    <button data-q="state=nokey">未配密钥</button>
+    <button data-q="state=noenv">环境未就绪</button>
+    <button data-q="state=running">跑任务中</button>
+    <button data-q="state=done">已出结果</button>
+  </div>
+  <div class="grp"><span class="lbl">弹窗</span>
+    <button data-q="dlg=ask">落轨询问</button>
+    <button data-q="dlg=cfm">清理确认</button>
+    <button data-q="dlg=ow">同名产物</button>
+    <button data-q="dlg=">关闭弹窗</button>
+  </div>
+  <div class="grp"><span class="lbl">宽度</span>
+    <button id="w460" class="on">460</button>
+    <button id="w360">360（最小）</button>
+  </div>
+</div>
+
+<div class="stage">
+  <div class="panelWrap">
+    <div class="panelTitle" id="cap">首页 · 就绪 · 460 宽</div>
+    <div class="frame" id="frame">
+      <div class="frameInner">
+        <iframe id="stage" src="index.html?page=home&state=ready" title="Noniika v2 实施稿"></iframe>
+      </div>
+    </div>
+  </div>
+
+  <div class="notes">
+    <h3>这次实施稿里的 7 项新组件（§4.2 全量落地）</h3>
+    <div class="noteItem"><span class="tag2">P1/P2</span><b>识别引擎状态条</b> —— 首页 header 下方：<b>引擎 · 模型（含"档位默认"标注）· 密钥状态</b>一眼可见；密钥缺失整条变红，点「更改」直达设置页。</div>
+    <div class="noteItem"><span class="tag2">P3</span><b>流程步骤条</b> —— 主按钮下方：<b>导出 › 分离 › 识别 › 建层</b> 四格三态（待办 / 进行中 / 完成），与进度条、status 行同源。</div>
+    <div class="noteItem"><span class="tag2">—</span><b>结果统计网格 + 产物 chips</b> —— 结果卡内 2×2：句数 / 字数 / 引擎·模型 / 时间轴来源；.srt / .json / .txt 可点直达。</div>
+    <div class="noteItem"><span class="tag2">P4</span><b>字幕预览框</b> —— 样式页顶部：示例句<b>随字体 / 字号 / 颜色 / 预设实时变化</b>（在本页真的可改，右侧栏试试）；标注"近似，以 AE 实际渲染为准"。</div>
+    <div class="noteItem"><span class="tag2">P5</span><b>依赖 / 环境状态网格</b> —— 分离页与设置页各一组 2×2 圆点行：环境 / 模型 / GPU / Python、Node / ffmpeg / 面板 Node / 流水线；全部"圆点 + 文字"双编码。</div>
+    <div class="noteItem"><span class="tag2">P6</span><b>密钥显示切换</b> —— 设置页 API Key / SecretKey 右侧「显示」按钮，粘贴后可核对再收起。</div>
+    <div class="noteItem"><span class="tag2">视觉</span><b>视觉层刷新</b> —— 圆角 8px、卡片顶部高光、主按钮渐变、:focus-visible 焦点描边；卡片标题加 accent 短竖线。</div>
+    <div class="foot">
+      红线自查：4 页 3 弹窗全保留 · 121 个旧 id 一个不少（只增不删）· 每屏一个 primary ·
+      弹窗按钮顺序 = 推荐 → 替代 → 取消 · 破坏性动作全部 ghost + 确认弹窗 ·
+      无新依赖、无新 input 类型、无 Tailwind（见 实施说明.md §1 的取舍说明）。
+    </div>
+  </div>
+</div>
+
+<script>
+(function () {
+  var stage = document.getElementById("stage");
+  var frame = document.getElementById("frame");
+  var cap = document.getElementById("cap");
+  var cur = { page: "home", state: "ready", dlg: "", w: 460 };
+  /* 支持 URL 深链：预览.html?w=360&page=style&state=done&dlg=cfm（无头截图/分享都可用） */
+  var qs = new URLSearchParams(location.search);
+  if (qs.get("page")) cur.page = qs.get("page");
+  if (qs.get("state")) cur.state = qs.get("state");
+  if (qs.get("dlg")) cur.dlg = qs.get("dlg");
+  if (qs.get("w") === "360") cur.w = 360;
+  var PAGE_CN = { home: "首页", uvr: "人声分离", style: "字幕样式", set: "设置" };
+  var STATE_CN = { ready: "就绪", nokey: "未配密钥", noenv: "环境未就绪", running: "跑任务中", done: "已出结果" };
+
+  function apply() {
+    var q = "page=" + cur.page + "&state=" + cur.state + (cur.dlg ? "&dlg=" + cur.dlg : "");
+    stage.src = "index.html?" + q;
+    cap.textContent = PAGE_CN[cur.page] + " · " + STATE_CN[cur.state] + " · " + cur.w + " 宽";
+    frame.classList.toggle("w360", cur.w === 360);
+  }
+
+  var btns = document.querySelectorAll(".docbar button[data-q]");
+  for (var i = 0; i < btns.length; i++) {
+    btns[i].addEventListener("click", function () {
+      var kv = this.getAttribute("data-q").split("=");
+      var k = kv[0], v = kv[1];
+      if (k === "dlg") cur.dlg = v;
+      else { cur[k] = v; cur.dlg = ""; }
+      var grp = this.parentElement.querySelectorAll("button");
+      for (var j = 0; j < grp.length; j++) grp[j].classList.remove("on");
+      this.classList.add("on");
+      apply();
+    });
+  }
+  document.getElementById("w460").addEventListener("click", function () {
+    cur.w = 460; this.classList.add("on");
+    document.getElementById("w360").classList.remove("on"); apply();
+  });
+  document.getElementById("w360").addEventListener("click", function () {
+    cur.w = 360; this.classList.add("on");
+    document.getElementById("w460").classList.remove("on"); apply();
+  });
+  /* 深链：同步按钮高亮并渲染 */
+  var allBtns = document.querySelectorAll(".docbar button[data-q]");
+  for (var b = 0; b < allBtns.length; b++) {
+    var kv = allBtns[b].getAttribute("data-q").split("=");
+    var want = kv[0] === "dlg" ? cur.dlg : cur[kv[0]];
+    allBtns[b].classList.toggle("on", kv[1] === want && !(kv[0] === "dlg" && !cur.dlg && kv[1] !== ""));
+  }
+  if (cur.w === 360) {
+    document.getElementById("w360").classList.add("on");
+    document.getElementById("w460").classList.remove("on");
+  }
+  apply();
+})();
+</script>
+</body>
+</html>

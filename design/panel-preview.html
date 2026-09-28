@@ -1,0 +1,881 @@
+<!DOCTYPE html>
+<html lang="zh-CN"><head><meta charset="utf-8">
+<title>AE 自动字幕 · 面板全页预览（v0.7.0）· 选按钮落脚点用</title>
+<style>
+/*
+ * style.css —— AE 自动字幕面板样式
+ * ==========================================================
+ * 设计约束：**笔记本小屏优先**。
+ *   - 面板在 AE 里常常只有 300~400px 宽，任何固定宽度都会溢出
+ *   - 所以：主干（选中的素材 + 开始按钮 + 状态）常显，
+ *     其余全部收进 <details> 二级菜单，默认折叠
+ *   - 所有控件 max-width:100%，长路径用 break-all 换行而不是撑宽
+ *   - 配色贴近 After Effects 原生深色主题
+ */
+
+:root {
+  --bg: #232323;
+  --panel: #2b2b2b;
+  --panel2: #343434;
+  --line: #3d3d3d;
+  --fg: #d8d8d8;
+  --fg-dim: #9c9c9c;
+  --fg-hint: #7e7e7e;
+  --accent: #4a9eff;
+  --ok: #7ddba3;
+  --warn: #f0c869;
+  --err: #f09a9a;
+  --radius: 6px;
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  padding: 0;
+  background: var(--bg);
+  color: var(--fg);
+  font: 12px/1.6 "Segoe UI", "Microsoft YaHei", system-ui, sans-serif;
+  overflow-x: hidden;
+}
+
+.app {
+  padding: 10px;
+}
+
+/* 四页结构：首页 / 人声分离 / 字幕样式 / 设置。
+   同一时刻只显示一页，层级恒定两级，不会越点越深。 */
+.page { display: none; flex-direction: column; gap: 8px; }
+.page.on { display: flex; }
+
+/* ---------------------------------------------------------- 页头 */
+
+header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+}
+header.sub { justify-content: flex-start; }
+.hdrRight { display: flex; align-items: center; gap: 6px; }
+
+h1 { margin: 0; font-size: 13px; font-weight: 500; color: #f0f0f0; }
+
+.badge {
+  font-size: 11px;
+  padding: 1px 7px;
+  border-radius: 9px;
+  background: #3a3a3a;
+  color: #a8a8a8;
+  white-space: nowrap;
+}
+.badge.ok   { background: #1f4d33; color: var(--ok); }
+.badge.warn { background: #5a4416; color: var(--warn); }
+.badge.bad  { background: #5a2020; color: var(--err); }
+
+/* ---------------------------------------------------------- 卡片 / 二级菜单 */
+
+.card {
+  background: var(--panel);
+  border: 1px solid #383838;
+  border-radius: var(--radius);
+  padding: 8px 10px;
+}
+
+.card-title {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  font-size: 11px;
+  color: #8f8f8f;
+  margin-bottom: 6px;
+  letter-spacing: .3px;
+}
+
+details.card > summary {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  font-size: 11px;
+  color: #8f8f8f;
+  letter-spacing: .3px;
+  list-style: none;
+  user-select: none;
+}
+details.card > summary::-webkit-details-marker { display: none; }
+details.card > summary::before {
+  content: "\25B8";
+  font-size: 10px;
+  color: #6f6f6f;
+  transition: transform .15s;
+}
+details[open].card > summary { color: #b5b5b5; margin-bottom: 6px; }
+details[open].card > summary::before { transform: rotate(90deg); }
+
+/* ---------------------------------------------------------- 文本 */
+
+.info { line-height: 1.65; word-break: break-all; }
+.info .k { color: var(--fg-hint); display: inline-block; min-width: 42px; }
+.hint { color: var(--fg-hint); font-size: 11px; margin-top: 5px; line-height: 1.5; word-break: break-all; }
+.mono { font-family: Consolas, "Courier New", monospace; font-size: 11px; }
+.warnText { color: var(--warn); }
+.errText  { color: var(--err); }
+.okText   { color: var(--ok); }
+
+/* ---------------------------------------------------------- 表单 */
+
+.row { display: flex; align-items: center; gap: 6px; margin-top: 6px; }
+.row > label:first-child { flex: 0 0 58px; color: var(--fg-dim); }
+
+input[type="text"],
+input[type="number"],
+select {
+  flex: 1 1 auto;
+  min-width: 0;
+  max-width: 100%;
+  background: var(--panel2);
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  color: var(--fg);
+  padding: 3px 6px;
+  font: inherit;
+}
+input[type="number"] { text-align: center; }
+input[type="color"] {
+  flex: 0 0 auto;
+  width: 36px;
+  height: 22px;
+  padding: 0;
+  border: 1px solid var(--line);
+  background: none;
+}
+input[type="range"] { flex: 1 1 auto; min-width: 0; margin: 0; }
+input[type="checkbox"] { flex: 0 0 auto; margin: 0; }
+
+label.chk {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 7px;
+  color: var(--fg-dim);
+}
+
+/* 总开关：常显在操作区下方，单独成块，避免被当成"颜色那一行的附属项" */
+label.chk.always {
+  margin-top: 0;
+  padding: 6px 9px;
+  background: var(--panel);
+  border: 1px solid #383838;
+  border-radius: var(--radius);
+  color: var(--fg);
+  cursor: pointer;
+  line-height: 1.45;
+}
+label.chk.always input[type="checkbox"] { cursor: pointer; }
+
+/* ---------------------------------------------------------- 按钮 */
+
+.actions { display: flex; gap: 6px; }
+
+button {
+  font: inherit;
+  padding: 5px 10px;
+  border-radius: 4px;
+  border: 1px solid var(--line);
+  background: var(--panel2);
+  color: var(--fg);
+  cursor: pointer;
+}
+button:hover:not(:disabled) { border-color: #585858; }
+button:disabled { opacity: .45; cursor: default; }
+
+button.primary {
+  flex: 1 1 auto;
+  padding: 8px 10px;
+  background: #2f5f9e;
+  border-color: #3b76c2;
+  color: #eaf2ff;
+  font-weight: 500;
+}
+button.primary:hover:not(:disabled) { background: #356bb0; }
+
+button.ghost { flex: 0 0 auto; }
+button.small { padding: 3px 8px; font-size: 11px; }
+
+/* ---------------------------------------------------------- 进度 / 状态 */
+
+.progress {
+  height: 4px;
+  background: #1c1c1c;
+  border-radius: 2px;
+  overflow: hidden;
+}
+.progress > div {
+  height: 100%;
+  width: 0;
+  background: var(--accent);
+  transition: width .2s;
+}
+
+.status { font-size: 11px; color: #a8a8a8; min-height: 15px; word-break: break-all; }
+
+/* ---------------------------------------------------------- 日志 */
+
+.log {
+  max-height: 170px;
+  overflow: auto;
+  background: #1c1c1c;
+  border: 1px solid #383838;
+  border-radius: 4px;
+  padding: 6px;
+  margin: 8px 0 0;
+  font: 11px/1.55 Consolas, "Courier New", monospace;
+  white-space: pre-wrap;
+  word-break: break-all;
+  color: #9c9c9c;
+}
+.log .ok   { color: var(--ok); }
+.log .err  { color: var(--err); }
+.log .warn { color: var(--warn); }
+
+/* ---------------------------------------------------------- 底部提示 */
+
+.footnote {
+  color: var(--fg-hint);
+  font-size: 11px;
+  line-height: 1.5;
+  padding: 0 2px 4px;
+}
+
+/* ---------------------------------------------------------- 卡片标题右侧的当前值摘要 */
+
+.card-title .sumb {
+  margin-left: auto;
+  color: var(--fg-hint);
+  font-size: 10px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 52%;
+}
+
+/* ---------------------------------------------------------- 图标按钮 / 按钮排布 */
+
+button.icon { padding: 2px 7px; font-size: 13px; line-height: 1.2; flex: 0 0 auto; }
+.actions.sub  button { flex: 1 1 0; }
+.actions.fill button { flex: 1 1 0; }
+
+/* ---------------------------------------------------------- 菜单入口按钮
+   标题是"去哪儿"，副标题是"现在是什么" —— 既是入口也是一眼可见的状态 */
+
+button.navbtn {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 1px;
+  padding: 6px 9px;
+  text-align: left;
+  line-height: 1.35;
+  min-width: 0;
+}
+button.navbtn b {
+  font-weight: 500;
+  font-size: 12px;
+  color: var(--fg);
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+button.navbtn span {
+  font-size: 10px;
+  color: var(--fg-hint);
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+button.navbtn span.on { color: var(--ok); }
+button.navbtn:hover:not(:disabled) b { color: #fff; }
+
+/* ---------------------------------------------------------- 一行塞两个控件（字号 + 颜色） */
+
+.row > .half {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex: 1 1 0;
+  min-width: 0;
+}
+.row > .half > label { flex: 0 0 32px; color: var(--fg-dim); font-size: 11px; }
+.row > .half > input { min-width: 0; }
+
+/* ---------------------------------------------------------- 缩进区块（开关关闭时置灰） */
+
+.indent { border-left: 2px solid var(--line); margin: 7px 0 0 3px; padding-left: 9px; }
+.indent.off { opacity: .42; }
+
+/* ---------------------------------------------------------- 状态灯（依赖检测等） */
+
+.stateRow {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  font-size: 11px;
+  color: var(--fg-dim);
+  margin-top: 8px;
+  line-height: 1.45;
+}
+.dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  flex: 0 0 auto;
+  background: #666;
+  margin-top: 5px;
+}
+.dot.ok   { background: var(--ok); }
+.dot.warn { background: var(--warn); }
+.dot.bad  { background: var(--err); }
+
+/* ---------------------------------------------------------- 小标签 */
+
+.pill {
+  font-size: 9px;
+  padding: 0 5px;
+  border-radius: 8px;
+  background: #2f5f9e;
+  color: #eaf2ff;
+  flex: 0 0 auto;
+}
+.pill.mute { background: #3a3a3a; color: #9c9c9c; }
+.tag {
+  font-size: 9px;
+  padding: 0 4px;
+  border-radius: 3px;
+  background: #2f5f9e;
+  color: #eaf2ff;
+  margin-left: 4px;
+}
+
+/* ---------------------------------------------------------- 醒目提示条 */
+
+.tip {
+  margin-top: 7px;
+  font-size: 11px;
+  line-height: 1.5;
+  padding: 5px 7px;
+  border-radius: 4px;
+  background: #3a3117;
+  border: 1px solid #5a4416;
+  color: var(--warn);
+  word-break: break-all;
+}
+.tip.bad { background: #3a1e1e; border-color: #5a2020; color: var(--err); }
+
+.about {
+  font-size: 10px;
+  color: var(--fg-hint);
+  text-align: center;
+  line-height: 1.6;
+  padding: 2px 0 6px;
+}
+
+/* ---------------------------------------------------------- 询问弹层 */
+/* 只在"源素材是纯音频"时弹出，问分离出的人声是替换还是放到下方 */
+.overlay {
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(0, 0, 0, 0.62);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 14px;
+  z-index: 999;
+}
+
+.askBox {
+  background: var(--panel2);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 12px 13px 11px;
+  max-width: 330px;
+  width: 100%;
+  box-shadow: 0 8px 26px rgba(0, 0, 0, 0.55);
+}
+
+.askTitle {
+  font-size: 13px;
+  color: var(--fg);
+  margin-bottom: 7px;
+}
+
+.askBody {
+  font-size: 12px;
+  color: var(--fg-dim);
+  line-height: 1.65;
+  word-break: break-all;
+}
+
+.askBtns {
+  display: flex;
+  gap: 6px;
+  margin-top: 10px;
+  flex-wrap: wrap;
+}
+
+.askBtns button { flex: 1 1 auto; }
+
+.askBox .hint {
+  margin-top: 8px;
+  padding-top: 7px;
+  border-top: 1px solid var(--line);
+  font-size: 11px;
+  color: var(--fg-hint);
+  line-height: 1.6;
+  word-break: break-all;
+}
+
+</style>
+<style>
+
+/* ---------- 预览稿专属样式（不影响面板本身） ---------- */
+body { background:#111; color:#d8d8d8; font-family:"Microsoft YaHei", -apple-system, sans-serif;
+       padding:22px; margin:0; }
+.pvWrap { max-width:1580px; margin:0 auto; }
+.pvH1 { font-size:17px; margin:0 0 4px; color:#eaeaea; }
+.pvSub { font-size:12px; color:#8b8b8b; margin-bottom:16px; }
+.pvLegend { background:#1b1b1b; border:1px solid #303030; border-radius:10px; padding:12px 14px;
+            margin-bottom:18px; }
+.pvLegendRow { display:flex; align-items:center; gap:10px; font-size:12.5px; padding:3px 0; }
+.pvLegendRow span:nth-child(2) { color:#cfcfcf; min-width:250px; }
+.pvLegendRow i { color:#7e7e7e; font-style:normal; }
+.pvLegendNote { font-size:12px; color:#9a9a9a; margin-top:8px; border-top:1px dashed #333;
+                padding-top:8px; line-height:1.7; }
+.pvGrid { display:flex; flex-wrap:wrap; gap:18px; align-items:flex-start; }
+.pvFrame { background:#191919; border:1px solid #2e2e2e; border-radius:10px; padding:10px; }
+.pvFrame.pvWide { flex:1 1 480px; }
+.pvTitle { font-size:12px; color:#8ab4f8; margin:0 0 8px 2px; }
+.pvTitle b { color:#cfe1ff; }
+.pvPanel { width:460px; height:auto; overflow:visible; background:var(--bg);
+           border-radius:8px; border:1px solid #2a2a2a; }
+/* 真实面板是 460x720 可滚动；预览为了让你看全每一页（尤其是页面底部），按内容全展开 */
+.pvPanel .page { display:block !important; }          /* 面板靠 JS 切页，这里全摊开 */
+.pvCand { outline:2px dashed #7aa2f7; outline-offset:3px; border-radius:7px;
+          padding:6px 6px 4px; margin:9px 0; position:relative; }
+.pvCandTag { position:absolute; top:-9px; left:8px; font-size:10px; background:#7aa2f7; color:#10151f;
+             padding:1px 7px; border-radius:9px; font-weight:700; letter-spacing:.5px; }
+.pvDialogWrap { background:#101010; border-radius:8px; padding:16px; }
+.pvList { margin:8px 0 2px; font-size:12.5px; }
+.pvList > div { display:flex; align-items:baseline; gap:8px; padding:3px 0;
+                border-bottom:1px dotted #333; }
+.pvList > div span { flex:1 1 auto; color:#c6c6c6; }
+.pvList > div b { color:#e8e8e8; min-width:64px; text-align:right; }
+.pvList > div i { color:#7e7e7e; font-style:normal; min-width:70px; text-align:right; }
+.pvReport { display:flex; gap:14px; flex-wrap:wrap; }
+.pvReportCol { flex:1 1 320px; background:#191919; border:1px solid #2e2e2e; border-radius:10px;
+               padding:12px 14px; }
+.pvReportTitle { font-size:13px; color:#cfe1ff; margin-bottom:8px; }
+
+</style>
+</head><body>
+<div class="pvWrap">
+<div class="pvH1">AE 自动字幕 · 面板全页预览（v0.7.0）· 选按钮落脚点用</div>
+<div class="pvSub">四个页面都是真实面板 HTML + 真实 CSS 渲染；示例数据是填进去的，虚线框里的按钮只是示意。面板高度按内容展开（真实面板 460×720 可滚动），方便你看到每一页的底部。</div>
+<div class="pvLegend">
+  <div class="pvLegendRow"><span class="pvCandTag">候选 A</span>
+    <span>首页 · 两个导航按钮下方</span><i>小按钮条，最浅一层，不占卡片</i></div>
+  <div class="pvLegendRow"><span class="pvCandTag">候选 B</span>
+    <span>首页 · 底部（脚注上方）</span><i>独立「维护」卡片，最显眼</i></div>
+  <div class="pvLegendRow"><span class="pvCandTag">候选 C</span>
+    <span>设置页 · 环境与诊断 · 动作行内</span><i>与「重新检测环境 / 恢复默认 / 跑自检」并排</i></div>
+  <div class="pvLegendRow"><span class="pvCandTag">候选 D</span>
+    <span>设置页 · 环境与诊断 之后新增「维护」卡片</span><i>可写说明文字，最完整</i></div>
+  <div class="pvLegendNote">
+    虚线框里的按钮都是<b>示意</b>（点了不会有反应）。你只要告诉我用 A/B/C/D 哪个（或都要、或另指位置），
+    我再动真面板。四个页面都是<b>真实面板的 HTML + CSS</b> 渲染出来的，示例数据是填的。
+  </div>
+</div>
+<div class="pvGrid">
+<section class="pvFrame"><div class="pvTitle">① <b>首页</b> · 主操作页（含候选 A / B）</div><div class="pvPanel"><div class="page on" id="pageHome">
+
+    <header>
+      <h1>AE 自动字幕</h1>
+      <div class="hdrRight">
+        <span id="envBadge" class="badge ok">环境就绪</span>检测中…</span>
+        <button class="icon" id="btnGear" title="设置">⚙</button>
+      </div>
+    </header>
+
+    <section class="card">
+      <div class="card-title">
+        <span>时间线上选中的素材</span>
+        <button id="btnRefresh" class="ghost small">刷新</button>
+      </div>
+      <div id="selInfo" class="info"><span class="k">合成</span>合成 1 · 1920×806<br><span class="k">素材</span>无上光荣.mp4（视频 · 带音频）<br><span class="k">选中</span>1 个图层<br><span class="k">区间</span>0.00 ~ 154.20 秒</div>
+      <div id="selHint" class="hint">点「开始生成字幕」后：导出音频 → 人声分离 → 云端识别 → 在合成里建字幕图层。</div>
+    </section>
+
+    <div class="actions">
+      <button id="btnRun" class="primary">▶　开始生成字幕</button>
+    </div>
+
+    <!-- 两个独立菜单入口：标题是"去哪儿"，副标题是"现在是什么" -->
+    <div class="actions sub">
+      <button class="navbtn" id="btnGoUvr" title="进入人声分离">
+        <b>人声分离设置</b><span id="navUvr"><span id="navUvr" class="on">当前：开（MelBand Roformer）</span></span>
+      </button>
+      <button class="navbtn" id="btnGoStyle" title="进入字幕样式">
+        <b>字幕样式</b><span id="navStyle"><span id="navStyle">每句一层 · 72</span></span>
+      </button>
+    </div>
+    <div class="pvCand"><span class="pvCandTag">候选 A</span>
+      <div class="actions fill">
+        <button class="ghost small">🚀 清理内存</button>
+        <button class="ghost small">🗑 清理插件文件</button>
+      </div>
+    </div>
+<div class="hint" style="margin-top:0">其余设置（识别选项 / 输出与日志 / 环境与诊断）在右上角 <b>⚙</b> 里。</div>
+
+    <!-- 总开关：决定这次点击有没有产出，必须常显 -->
+    <label class="chk always" title="关掉它只会生成 .srt / .json 文件">
+      <input type="checkbox" id="createLayers" checked> 识别完成后在 AE 中创建字幕图层
+    </label>
+    <div id="noLayerWarn" class="hint warnText">
+      当前只生成字幕文件（.srt / .json），不会在 AE 里建图层。
+    </div>
+
+    <div class="progress"><div id="bar" style="width:100%"></div></div>
+    <div id="status" class="status">完成：42 句字幕已创建</div>
+
+    <!-- 结果摘要：跑完才有内容 -->
+    <section class="card" id="resultCard">
+      <div class="card-title">
+        <span>本次结果</span>
+        <button id="btnOpenOut" class="ghost small">打开目录</button>
+      </div>
+      <div id="resultInfo" class="info"><span class="k">字幕</span>42 句 · 612 字 · 语音覆盖 87%<br><span class="k">图层</span>已在合成「合成 1」中创建 42 个<br><span class="k">产物</span>无上光荣.json / .srt / .txt<br><span class="k">用时</span>134 秒（识别 41 秒 / 分离 62 秒）</div>
+      <div id="resultTip" class="tip bad" style="display:none"></div>
+    </section>
+
+    <details class="card" id="logBox" open>
+      <summary>运行日志</summary>
+      <div id="log" class="log">→ 导出音频：0.00 ~ 154.20 秒（16kHz 单声道）<br>→ 人声分离：MelBand Roformer · 62 秒<br>→ 上传识别：42 句<br>→ 按语音校正了 19 句（检测到 47 处语音），另有 23 句保持原样<br>   · 第 12 句「我们胜利了」8.20~9.05 秒 → 8.14~9.28 秒（+9 毫秒）<br>√ 预设动画跨度 2.00 秒 → 已铺满本句 5.00 秒（拉伸 2.50×）<br>√ 完成</div>
+    </details>
+
+    <div class="pvCand"><span class="pvCandTag">候选 B</span>
+      <section class="card">
+        <div class="card-title"><span>维护</span></div>
+        <div class="actions fill">
+          <button class="ghost small">🚀 清理内存</button>
+          <button class="ghost small">🗑 清理插件文件</button>
+        </div>
+        <div class="hint">给内存放气、收拾插件自己留下的临时文件。</div>
+      </section>
+    </div>
+<div class="footnote">音频会上传到字节跳动（剪映）云端识别，请勿处理机密内容。</div>
+  </div></div></section>
+<section class="pvFrame"><div class="pvTitle">② <b>人声分离</b> · 独立菜单</div><div class="pvPanel"><div class="page" id="pageUvr">
+
+    <header class="sub">
+      <button class="icon" data-home="1" title="返回">←</button>
+      <h1>人声分离</h1>
+      <span id="uvrBadge" class="badge ok" style="margin-left:auto">已就绪</span>关</span>
+    </header>
+
+    <section class="card">
+      <label class="chk" style="margin-top:0">
+        <input type="checkbox" id="uvrOn" checked> 识别前先分离人声
+      </label>
+
+      <div class="indent" id="uvrBody">
+        <div class="row"><label>分离目标</label>
+          <select id="uvrTarget">
+            <option value="vocals">仅人声（去掉背景音乐）</option>
+            <option value="instrumental">仅伴奏（做卡拉OK）</option>
+            <option value="both">人声 + 伴奏都保留</option>
+          </select>
+        </div>
+        <div class="row"><label>模型</label>
+          <select id="uvrModel">
+            <optgroup label="人声质量优先（12 分档 · 需 GPU）">
+              <option value="vocals_mel_band_roformer.ckpt">MelBand Roformer · 人声 12.6　★榜单最高</option>
+              <option value="melband_roformer_big_beta4.ckpt">MelBand Big Beta4 · 人声 12.5</option>
+              <option value="mel_band_roformer_kim_ft_unwa.ckpt">MelBand Kim FT · 人声 12.4</option>
+              <option value="melband_roformer_big_beta5e.ckpt">MelBand Big Beta5e · 人声 12.4</option>
+              <option value="MelBandRoformerBigSYHFTV1.ckpt">MelBand Big SYHFT · 人声 12.3</option>
+            </optgroup>
+            <optgroup label="人声与伴奏并重（需 GPU）">
+              <option value="model_bs_roformer_ep_368_sdr_12.9628.ckpt">BS-Roformer 1296 · 人声 12.1 / 伴奏 16.3</option>
+              <option value="model_bs_roformer_ep_317_sdr_12.9755.ckpt">BS-Roformer 1297 · 人声 11.8 / 伴奏 16.5　★伴奏最强</option>
+              <option value="htdemucs_ft.yaml">Demucs v4 FT · 人声 10.8 · 四轨（含鼓/贝斯）</option>
+            </optgroup>
+            <optgroup label="速度优先（CPU 也能跑）">
+              <option value="Kim_Vocal_2.onnx">Kim Vocal 2 · 人声 10.2 / 伴奏 15.4　（默认）</option>
+              <option value="UVR-MDX-NET-Voc_FT.onnx">UVR MDX-NET Voc FT · 人声 10.2</option>
+              <option value="UVR-MDX-NET-Inst_HQ_3.onnx">UVR MDX-NET Inst HQ 3 · 伴奏专用</option>
+              <option value="UVR_MDXNET_KARA_2.onnx">UVR MDX-NET KARA 2 · 卡拉OK</option>
+            </optgroup>
+          </select>
+        </div>
+        <div id="uvrModelHint" class="hint" style="margin-top:4px">MelBand Roformer · 人声 SDR 12.6（榜单最高）· 需 GPU · 模型 871 MB（已下载）</div>
+        <div class="row"><label>输出</label>
+          <select id="uvrFormat">
+            <option value="WAV">WAV 无损</option>
+            <option value="FLAC">FLAC 无损压缩</option>
+            <option value="MP3">MP3 320k · 体积小</option>
+          </select>
+        </div>
+        <label class="chk"><input type="checkbox" id="uvrKeep"> 保留分离后的人声文件（默认处理完删除）</label>
+      </div>
+    </section>
+
+    <section class="card">
+      <div class="card-title">
+        <span>本地依赖</span>
+        <button id="btnUvrCheck" class="ghost small">检查依赖</button>
+      </div>
+      <div id="uvrDeps"><div class="stateRow"><span class="dot ok"></span><span>Python 3.13.12 · 独立环境 python-env（不污染系统）</span></div><div class="stateRow"><span class="dot ok"></span><span>audio-separator 1.30.0 已安装</span></div><div class="stateRow"><span class="dot ok"></span><span>本地运行，音频不会因为这一步离开你的电脑</span></div><div class="stateRow"><span class="dot ok"></span><span>运算设备 GPU · NVIDIA GeForce RTX 4060 Laptop GPU（torch √ · ONNX √）</span></div></div>
+      <div class="actions fill" style="margin-top:9px">
+        <button id="btnUvrInstall" class="small">一键安装环境</button>
+        <button id="btnUvrModel" class="small">下载模型</button>
+      </div>
+      <label class="chk" style="margin-top:6px"><input type="checkbox" id="uvrGpu" checked>
+        GPU 加速（NVIDIA 显卡 · 装 CUDA 版，约 4 GB，分离快十几倍）</label>
+      <div class="row" style="margin-top:8px"><label>Python</label>
+        <input type="text" id="uvrPython" placeholder="留空自动探测（需 3.10~3.13）"></div>
+      <div class="hint">装环境是一次性的（CPU 版约 1.5 GB，GPU 版约 4 GB）。Python 需在 <b>3.10 ~ 3.13</b> 之间：
+        依赖的预编译包还没有 3.14 版本，版本不对会安装失败。分离在本地跑，音频不会因为这一步离开你的电脑。
+        速度取决于 CPU：约 0.3~1× 实时，10 分钟素材大概要 10~30 分钟；有独立显卡会快很多。
+        模型在首次使用该模型时自动下载（约 60~300 MB/个）。</div>
+    </section>
+
+    <div class="footnote">开启后的流程：AE 导出音频 → 本地分离人声 → 只把人声送云端识别。</div>
+  </div></div></section>
+<section class="pvFrame"><div class="pvTitle">③ <b>字幕样式</b> · 独立菜单</div><div class="pvPanel"><div class="page" id="pageStyle">
+
+    <header class="sub">
+      <button class="icon" data-home="1" title="返回">←</button>
+      <h1>字幕样式</h1>
+    </header>
+
+    <section class="card">
+      <div class="row" style="margin-top:0"><label>排布</label>
+        <select id="mode">
+          <option value="layers">每句一层（改哪句点哪句）</option>
+          <option value="single">单层 + 关键帧（图层少）</option>
+        </select>
+      </div>
+
+      <div class="row"><label>图层命名</label>
+        <select id="nameMode" title="每句一层的图层名：用那句话的文字（好找）还是传统的前缀+序号">
+          <option value="text">文字命名（图层名=识别到的那句话）</option>
+          <option value="seq">前缀 + 序号（字幕_001）</option>
+        </select>
+      </div>
+      <div class="row" id="rowSubPrefix" style="display:none"><label>字幕前缀</label>
+        <input type="text" id="subPrefix" value="字幕" maxlength="20"
+          placeholder="字幕" title="前缀 + 序号命名时的前缀，如填 字幕B 得到 字幕B_001">
+      </div>
+
+      <div class="row"><label>字体</label>
+        <input type="text" id="fontQuery" placeholder="输入字体名筛选，如 华文 / 锐字 / SimHei">
+        <button id="btnPickFont" class="ghost small" title="从时间线上选中的文本图层读取字体、字号、颜色">拾取</button>
+      </div>
+      <div class="row"><label></label>
+        <select id="fontSelect"><option value="REEJI-PinboGB-Flash">REEJI-PinboGB-Flash（锐字奥运精神拼搏）</option><option value="STKaiti">STKaiti（华文楷体）</option><option value="SourceHanSansCN-Bold">SourceHanSansCN-Bold（思源黑体）</option></select><option value="">（读取中…）</option></select>
+      </div>
+      <div class="actions" style="margin-top:5px">
+        <button id="btnFontRefresh" class="ghost small" style="flex:0 0 auto"
+          title="重新扫描 AE 的字体列表。刚装了新字体、或列表不全时点这里">刷新字体列表</button>
+        <span id="fontCount" class="hint" style="margin:0;flex:1 1 auto">AE 里共 220 个家族；匹配 10 个</span>
+      </div>
+      <div id="fontNow" class="hint">字体：REEJI-PinboGB-Flash</div>
+
+      <!-- 字号 + 颜色并排，省出一行的纵向空间 -->
+      <div class="row">
+        <div class="half"><label>字号</label><input type="number" id="fontSize" value="72" min="8" max="400"></div>
+        <div class="half"><label>颜色</label><input type="color" id="color" value="#ffe600"></div>
+      </div>
+    </section>
+
+    <section class="card">
+      <div class="card-title"><span>文字动画预设</span></div>
+      <div class="row" style="margin-top:0"><label>搜索</label>
+        <input type="text" id="presetQuery" placeholder="搜预设名或分类，如 飞入 / 打字机 / Animate In">
+      </div>
+      <div class="row"><label>预设</label>
+        <select id="presetSelect"><option value="C:/Program Files/Adobe/.../打字机.ffx">打字机 · Text/Typewriter</option><option value="">（不使用动画预设）</option></select><option value="">（读取中…）</option></select>
+      </div>
+      <div class="actions fill" style="margin-top:6px">
+        <button id="btnPresetFile" class="small">浏览预设文件…</button>
+        <button id="btnPresetDir" class="small">打开预设文件夹</button>
+      </div>
+      <div id="presetHint" class="hint">共 300 个预设；匹配 11 个 · 已选：打字机</div>
+      <div id="presetWarn" class="tip" style="display:none">
+        实测 AE 自带的文字预设都通过「文本动画器」实现，<b>不影响字幕居中</b>；
+        个别预设若改写了图层位置，落点会由预设决定，面板就不再强制居中。
+      </div>
+    </section>
+
+    <section class="card">
+      <div class="card-title"><span>位置</span><span class="sumb">固定居中</span></div>
+      <div class="hint" style="margin-top:0">字幕固定在画面正中央（水平垂直都居中），无需调整。
+        「单层 + 关键帧」模式下各行长短差异大时可能略有偏移，介意就用「每句一层」。</div>
+    </section>
+
+    <section class="card">
+      <div class="card-title"><span>字幕体检</span></div>
+      <div class="hint" style="margin-top:0">
+        「明明建了图层，画面却是空的」时点这里。检查选中的合成里每个字幕层：
+        是否被<b>上方视频层完全盖住</b>（素材后放进合成时最常见）、文字是否为空、
+        图层是否被关闭、不透明度是否为 0、出入点是否零时长。<b>只读，不改任何东西。</b>
+      </div>
+      <div class="actions fill" style="margin-top:8px">
+        <button id="btnSubCheck" class="small">检查字幕是否可见</button>
+        <button id="btnFixKeys" class="ghost small">修复动画关键帧错位</button>
+      </div>
+      <div class="hint">「修复动画关键帧错位」用于这种情形：套了动画预设（打字机一类）后字幕整句看不见,
+        而图层不透明度是 100%、文字也在 —— 那是预设的「范围选择器」关键帧落在了句子时间之外。
+        它会把这些图层的关键帧整体搬回各自的时间范围（只动明显错位的层，进撤销栈，Ctrl+Z 可撤回）。</div>
+      <div id="subCheckOut"><div class="stateRow"><span class="dot ok"></span><span>属性全部正常，渲染验证也通过 —— 字幕应该能看见</span></div><div class="stateRow"><span class="dot bad"></span><span>有 1 个图层开了「独奏」—— 其余图层（含全部字幕）都会被隐藏</span></div></div>
+    </section>
+
+  </div></div></section>
+<section class="pvFrame"><div class="pvTitle">④ <b>设置</b> · 三组（含候选 C / D）</div><div class="pvPanel"><div class="page" id="pageSet">
+
+    <header class="sub">
+      <button class="icon" data-home="1" title="返回">←</button>
+      <h1>设置</h1>
+      <span class="badge" style="margin-left:auto">3 组</span>
+    </header>
+    <div class="hint" style="margin-top:0">改动即时保存，关掉面板也不会丢。</div>
+
+    <section class="card">
+      <div class="card-title"><span>识别选项</span></div>
+      <div class="row" style="margin-top:0"><label>每行字数</label>
+        <input type="number" id="maxChars" value="16" min="6" max="40"></div>
+      <label class="chk"><input type="checkbox" id="dropSuspect"> 丢弃疑似误识别段（默认只标记不删）</label>
+      <label class="chk"><input type="checkbox" id="snapSpeech" checked> 按真实语音时长校正每句时间</label>
+      <div class="hint" style="margin-top:2px">识别后会对音频做一次静音检测（用自带 ffmpeg，不额外上传），
+        把每句起止校正到真实说话区间 —— 解决"说话没完字幕就没了 / 字幕还在但话已说完"。
+        只做小幅校正（±0.8 秒内、不短于 0.35 秒、不与相邻句重叠）。</div>
+      <label class="chk"><input type="checkbox" id="limitOn" checked> 限制单次处理时长</label>
+      <div class="row"><label>上限</label>
+        <input type="number" id="limitMin" value="10" min="1" max="120">
+        <span class="hint" style="margin:0;flex:0 0 auto">分钟</span></div>
+      <div class="row"><label>引擎</label>
+        <select id="asrEngine">
+          <option value="jianying">剪映（免费 · 默认）</option>
+          <option value="whisper" disabled>本地 Whisper（未接入）</option>
+          <option value="xfyun" disabled>讯飞 / 百度（未接入）</option>
+        </select>
+      </div>
+      <div class="hint">备用引擎位：剪映接口是逆向实现，若失效可切换（尚未接入）。
+        云端单次上传上限 200 MB，16kHz 无损约可容 1.8 小时，超限会自动改用压缩格式。</div>
+    </section>
+
+    <section class="card">
+      <div class="card-title"><span>输出与日志</span></div>
+      <div class="row" style="margin-top:0"><label>输出目录</label>
+        <input type="text" id="outDir" placeholder="留空则跟随工程目录"></div>
+      <label class="chk"><input type="checkbox" id="keepAudio"> 保留中间音频（排障用，默认处理完删除）</label>
+      <div class="actions" style="margin-top:8px">
+        <button id="btnTest" class="ghost small">试导出</button>
+        <button id="btnRebuild" class="ghost small">用已有字幕建图层</button>
+      </div>
+      <div class="hint">中间音频是 AE 导出的临时无损音频，放在输出目录的 <span class="mono">_中间音频\</span> 下，
+        识别完成后自动删除（约 188 KB/秒）。</div>
+      <div class="hint">「试导出」只导出音频、不上传云端（零成本验证导出环节）；
+        「用已有字幕建图层」直接拿输出目录里同名的 <span class="mono">.json</span> 建图层，不重新识别。</div>
+    </section>
+
+    <section class="card">
+      <div class="card-title"><span>环境与诊断</span></div>
+      <div class="row" style="margin-top:0"><label>Node</label>
+        <input type="text" id="nodePath" placeholder="留空自动检测（需 18 及以上）"></div>
+      <div class="row"><label>流水线</label><input type="text" id="pipelineDir"></div>
+      <div class="actions" style="margin-top:8px">
+        <button id="btnProbe" class="ghost small">重新检测环境</button>
+        <button id="btnReset" class="ghost small">恢复默认</button>
+        <button id="btnSelfTest" class="ghost small">跑自检</button>
+      </div>
+      <div class="pvCand"><span class="pvCandTag">候选 C</span>
+        <div class="actions" style="margin-top:6px">
+          <button class="ghost small">🚀 清理内存</button>
+          <button class="ghost small">🗑 清理插件文件</button>
+        </div>
+      </div>
+<div id="envDetail" class="hint mono">node v22.22.2 · ffmpeg 6.1 · 流水线 D:/.../pipeline</div>
+      <div class="hint">「跑自检」会安全地验证字体检索、时间范围探测、字幕居中。
+        不导入素材、不新建合成，临时文本图层量完即删。</div>
+    </section>
+
+    <div class="pvCand"><span class="pvCandTag">候选 D</span>
+    <section class="card">
+      <div class="card-title"><span>维护</span><span class="sumb">清理类操作</span></div>
+      <div class="actions fill" style="margin-top:0">
+        <button class="ghost small">🚀 清理内存</button>
+        <button class="ghost small">🗑 清理插件文件</button>
+      </div>
+      <div class="hint">「清理内存」只放掉被占着不用的内存，不影响任何软件运行；
+        「清理插件文件」会先列出清单让你确认，再删除本插件自己产生的中间文件。</div>
+    </section>
+  </div>
+<div class="about">
+      AE 自动字幕 v0.7.0 · 自用版（未签名）<br>
+      识别引擎：剪映（GPL-3.0）· 人声分离：audio-separator（MIT）
+    </div>
+
+  </div></div></section>
+</div>
+<section class="pvFrame pvWide" style="margin-top:18px"><div class="pvTitle">🗑 <b>垃圾桶的二级确认界面</b>（草案 · 点按钮后先出这张）</div><div class="pvDialogWrap">
+  <div class="overlay" style="position:static;background:transparent;padding:0">
+    <div class="askBox" style="margin:0 auto">
+      <div class="askTitle">清理插件产生的文件？</div>
+      <div class="askBody">
+        <div style="line-height:1.9">
+          只会删除<b>本插件自己生成</b>的中间文件与缓存，<b>不影响你的工程和素材</b>：
+        </div>
+        <div class="pvList">
+          <div><span>输出目录 / _中间音频</span><b>2.1 GB</b><i>12 个文件</i></div>
+          <div><span>输出目录 / _人声分离</span><b>684 MB</b><i>6 个文件</i></div>
+          <div><span>系统临时目录的插件文件</span><b>128 MB</b><i>23 个文件</i></div>
+          <div><span>面板缓存（CEP / Chromium）</span><b>46 MB</b><i>8 个文件</i></div>
+        </div>
+        <div class="hint" style="margin-top:8px">
+          合计 <b>49 个文件</b>，可释放约 <b>2.9 GB</b>。识别产物（.srt / .json）与分离出的人声默认保留。
+        </div>
+      </div>
+      <div class="askBtns">
+        <button class="primary small">确认清理</button>
+        <button class="ghost small">取消</button>
+      </div>
+      <div class="hint">想连字幕产物一起删，可以在弹层里勾选「连识别产物一起删」。</div>
+    </div>
+  </div>
+</div></section>
+<section class="pvFrame pvWide" style="margin-top:18px"><div class="pvTitle">🧾 <b>两个按钮的完成回报</b>（清理了多少 · 还剩多少）</div><div class="pvReport">
+  <div class="pvReportCol">
+    <div class="pvReportTitle">🚀 清理内存 · 完成回报</div>
+    <div class="stateRow"><span class="dot ok"></span><span>已释放 <b>1.42 GB</b> 内存</span></div>
+    <div class="stateRow"><span class="dot ok"></span><span>当前可用 <b>6.8 GB</b> / 15.9 GB（44%）</span></div>
+    <div class="hint" style="margin-top:6px">
+      做法：把各进程里"占着不用"的内存页还给系统（EmptSetSuperfetchInformation /
+      EmptyWorkingSet）。<b>不结束任何进程、不关任何软件</b>，AE 与插件照常运行。
+    </div>
+  </div>
+  <div class="pvReportCol">
+    <div class="pvReportTitle">🗑 清理插件文件 · 完成回报</div>
+    <div class="stateRow"><span class="dot ok"></span><span>删除 <b>49 个文件</b>，释放 <b>2.9 GB</b></span></div>
+    <div class="stateRow"><span class="dot warn"></span><span>跳过 3 个正被占用的文件（下次清理时再试）</span></div>
+    <div class="hint" style="margin-top:6px">
+      日志会逐条列出删了什么、跳过了什么、以及每个位置释放了多少 —— 删错了也能从回收站找回来
+      （全部走回收站，不走直接删除）。
+    </div>
+  </div>
+</div></section>
+</div>
+</body></html>
