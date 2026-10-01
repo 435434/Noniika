@@ -20,8 +20,11 @@
 
 import * as openaiCompat from "./openai-compat.js";
 import * as tencent from "./tencent.js";
+import * as local from "./local.js";
 
-const MODULES = [openaiCompat, tencent];
+// ⚠ 这个数组的顺序 = 面板下拉里的顺序：云端在前、本地在后
+// （本地那条要用户先下模型才能用，不适合当默认；默认仍是免费云端档）
+const MODULES = [openaiCompat, tencent, local];
 
 /** 默认档位：免费、国内直连、中文好。免费档没有额度焦虑，适合当默认。 */
 export const DEFAULT_PROVIDER = "openai-compat";
@@ -112,6 +115,7 @@ export async function transcribeFile({ providerId, profileId, credentials = {}, 
   }
 
   // 兜底：provider 自带 transcribeFile 就透传（新增服务商时不必改这个文件的结构）
+  // 走这条的典型是 local（whisper.cpp）：它只要 file 与档位（model），密钥/地址都不需要。
   return provider.transcribeFile({ ...rest, ...credentials, model, baseUrl });
 }
 

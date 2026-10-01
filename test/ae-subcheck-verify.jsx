@@ -1,6 +1,6 @@
 /* AE 实测：验证「字幕体检」能准确抓出"建了层但看不见"的各种成因 */
 (function () {
-  var OUT = "C:/Users/kunku/Desktop/AE字幕插件/test/output";
+  var OUT = "E:/项目文件/agent/ae字幕插件/test/output";
   var PROG = OUT + "/ae-subcheck-progress.txt";
   var RESULT = OUT + "/ae-subcheck-result.json";
   var BRIDGE = "C:/Users/kunku/AppData/Roaming/Adobe/CEP/extensions/com.aesub.autosubtitle/jsx/ae-bridge.jsx";

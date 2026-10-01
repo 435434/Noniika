@@ -8,7 +8,7 @@
  * ============================================================ */
 
 var BRIDGE = "C:/Users/kunku/AppData/Roaming/Adobe/CEP/extensions/com.aesub.autosubtitle/jsx/ae-bridge.jsx";
-var OUTDIR = "C:/Users/kunku/Desktop/AE字幕插件/test/output/";
+var OUTDIR = "E:/项目文件/agent/ae字幕插件/test/output/";
 
 try { $.evalFile(new File(BRIDGE)); } catch (e) { }
 

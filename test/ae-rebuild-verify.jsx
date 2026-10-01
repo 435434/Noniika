@@ -8,7 +8,7 @@
  * 跑完把自建的东西删干净。
  */
 
-var SCRIPT_DIR = "C:/Users/kunku/Desktop/AE字幕插件";
+var SCRIPT_DIR = "E:/项目文件/agent/ae字幕插件";
 var OUT_DIR    = SCRIPT_DIR + "/test/output";
 var PROGRESS   = OUT_DIR + "/ae-rebuild-progress.txt";
 var REPORT     = OUT_DIR + "/ae-rebuild-result.json";

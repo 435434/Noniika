@@ -13,8 +13,8 @@
  *   逐阶段落盘，任何一步失败都能精确定位。
  */
 
-var OUT  = "C:/Users/kunku/Desktop/AE字幕插件/test/output/ae-selftest-result.json";
-var PROG = "C:/Users/kunku/Desktop/AE字幕插件/test/output/ae-selftest-progress.txt";
+var OUT  = "E:/项目文件/agent/ae字幕插件/test/output/ae-selftest-result.json";
+var PROG = "E:/项目文件/agent/ae字幕插件/test/output/ae-selftest-progress.txt";
 var BRIDGE = "C:/Users/kunku/AppData/Roaming/Adobe/CEP/extensions/com.aesub.autosubtitle/jsx/ae-bridge.jsx";
 
 /** 最基础的落盘：不依赖桥接层，任何阶段都能用 */

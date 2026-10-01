@@ -8,7 +8,7 @@
  * 自建合成、自建 JSON，跑完删干净，不碰已有工程。
  */
 
-var SCRIPT_DIR = "C:/Users/kunku/Desktop/AE字幕插件";
+var SCRIPT_DIR = "E:/项目文件/agent/ae字幕插件";
 var OUT = SCRIPT_DIR + "/test/output";
 var PROGRESS = OUT + "/ae-preset-progress.txt";
 var REPORT = OUT + "/ae-preset-result.json";

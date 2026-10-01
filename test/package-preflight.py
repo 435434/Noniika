@@ -1,9 +1,23 @@
 # -*- coding: utf-8 -*-
-"""发前终检（只读）：把 Noniika-v0.9.1.zip 解开，逐项核对是否为当前最新内容。"""
+"""发前终检（只读）：解开 `插件打包` 里最新的 Noniika-v*.zip，逐项核对是否为当前最新内容。
+
+版本号不再写死 —— 用 glob 取序号最大的那个 zip（写死过一次，v0.9.2 时就得回来改）。
+"""
+import glob
 import io, os, re, time, zipfile
 
 R = os.getcwd()
-zpath = os.path.join(R, "插件打包", "Noniika-v0.9.1.zip")
+
+def _ver_key(p):
+    m = re.search(r"Noniika-v([0-9]+(?:\.[0-9]+)*)\.zip$", os.path.basename(p))
+    return [int(x) for x in m.group(1).split(".")] if m else [0]
+
+_cands = glob.glob(os.path.join(R, "插件打包", "Noniika-v*.zip"))
+if not _cands:
+    raise SystemExit("插件打包/ 里没有 Noniika-v*.zip —— 先跑 tools/build-package.py")
+zpath = sorted(_cands, key=_ver_key)[-1]
+if len(_cands) > 1:
+    print("   （发现 %d 个 zip，取最新：%s）" % (len(_cands), os.path.basename(zpath)))
 pass_n = fail_n = 0
 def check(name, cond, extra=""):
     global pass_n, fail_n
@@ -60,6 +74,13 @@ check("旧提示行已删（个人收款码）", "个人收款码" not in sp)
 check("爱发电按钮在", "afdian.com/a/Noniika007" in sp)
 check("无编辑器注入属性", "data-page-node-id" not in sp)
 check("赞赏码是相对路径", 'src="assets/zanshang-code.png"' in sp)
+# ♥ 按钮这一环：光有文件不够 —— 面板里的按钮与打开逻辑也得在
+# （自用版是**故意**去掉的，分发包必须有；删改任一处都会在这里被拦下）
+_pidx = zread("com.aesub.autosubtitle/index.html").decode("utf-8")
+_pjs = zread("com.aesub.autosubtitle/js/main.js").decode("utf-8")
+check("面板 ♥ 按钮在（btnSupport）", 'id="btnSupport"' in _pidx)
+check("♥ 打开逻辑在（openSupportPage + 绑定）",
+      "function openSupportPage" in _pjs and "el.btnSupport" in _pjs)
 
 print("\n=== 4. 许可与文档是免费模式 ===")
 lic = zread("com.aesub.autosubtitle/LICENSE").decode("utf-8")
@@ -72,14 +93,26 @@ check("使用说明有 ♥ 说明", "♥" in use)
 
 print("\n=== 5. 版本与合规红线 ===")
 man = zread("com.aesub.autosubtitle/CSXS/manifest.xml").decode("utf-8")
-check("manifest = v0.9.1", 'ExtensionBundleVersion="0.9.1"' in man)
+# 版本不再写死在这 —— 改成"四处必须一致"的一致性检查（写死过一次，v0.9.2 时就得回来改）
+_mv = re.search(r'ExtensionBundleVersion="([0-9][0-9.]*)"', man)
+v = _mv.group(1) if _mv else "?"
+check("manifest 有版本号", v != "?", "读不到 ExtensionBundleVersion")
+check("manifest 两处版本一致",
+      ('<Extension Id="com.aesub.autosubtitle.panel" Version="%s"' % v) in man,
+      "bundle 与 Extension 节点的版本不一致")
+check("zip 文件名版本 = manifest", os.path.basename(zpath) == "Noniika-v%s.zip" % v,
+      os.path.basename(zpath))
 check("ScriptPath 指向 jsxbin", "ae-bridge.jsxbin" in man)
 check("无明文 jsx", not any(n.endswith("ae-bridge.jsx") for n in names))
 check("无 node_modules", not any("/node_modules/" in n for n in names))
 check("无 python-env / models", not any(("/python-env/" in n or "/models/" in n) for n in names))
 check("自带 node.exe 在", zread("com.aesub.autosubtitle/node-runtime/node.exe") is not None)
+_html = zread("com.aesub.autosubtitle/index.html").decode("utf-8")
+check("面板关于串版本 = manifest", ("Noniika v%s ·" % v) in _html,
+      "index.html 里的 about 串与 manifest 不一致")
 js = zread("com.aesub.autosubtitle/js/main.js").decode("utf-8")
-check("面板关于串 = v0.9.1", "v0.9.1" in js)
+check("启动日志版本 = manifest", ('log("Noniika v%s")' % v) in js,
+      "main.js 启动日志的版本与 manifest 不一致")
 
 print("\n  通过 %d / %d" % (pass_n, pass_n + fail_n))
 print("  结论：" + ("可以发（包内全部为当前最新内容）" if fail_n == 0 else "**有问题，先修再发**"))

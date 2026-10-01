@@ -69,6 +69,10 @@
     //   这是"免登录、开箱即用"与"密钥安全"之间的取舍：不做系统级加密存储，
     //   界面上会明确告知用户；介意的话可以用环境变量 AESUB_API_KEY 代替填面板。
     asrProfile: "aesub.asrProfile",
+    // ---- 本地引擎（whisper.cpp）----
+    localModel: "aesub.localModel",
+    localRuntime: "aesub.localRuntime",
+    localGpu: "aesub.localGpu",
     asrApiKey: "aesub.asrApiKey",
     asrSecretId: "aesub.asrSecretId",
     asrSecretKey: "aesub.asrSecretKey",
@@ -163,7 +167,9 @@
     lastPlaced: null,          // 本次落轨结果（给结果卡片显示用）
     asrProfiles: null,         // 从 cli.js --list-asr 拿到的引擎档位清单
     asrModelList: null,        // 从服务商实时拉到的模型清单（优先于档位内置清单）
-    asrLoaded: false           // 档位是否已加载（避免重复拉起子进程）
+    asrLoaded: false,          // 档位是否已加载（避免重复拉起子进程）
+    asrLocalStatus: null,      // 本地引擎环境快照（cli.js --local-status 的返回）
+    localBusy: false           // 本地引擎的下载/清理进行中
   };
 
   /* ---------------------------------------------------------- 基础工具 */
@@ -525,6 +531,11 @@
     el.asrPrompt.value = lsGet(LS.asrPrompt, "");
     el.asrChunk.checked = lsGetBool(LS.asrChunk, true);
 
+    // 本地引擎：档位下拉的选项由 --local-status 铺（这里先把用户选过的档位恢复出来）
+    el.localModel.value = lsGet(LS.localModel, "medium");
+    el.localRuntime.value = lsGet(LS.localRuntime, "blas");   // 默认 BLAS：小、下得动
+    el.localGpu.checked = lsGetBool(LS.localGpu, true);
+
     // 下拉里没有这个值时（比如换了模型版本）就退回第一项，避免 value 变成空串
     if (el.uvrTarget.selectedIndex < 0) el.uvrTarget.selectedIndex = 0;
     if (el.uvrFormat.selectedIndex < 0) el.uvrFormat.selectedIndex = 0;
@@ -576,6 +587,9 @@
     lsSet(LS.presetLabel, state.presetLabel || "");
     // 识别引擎
     lsSet(LS.asrProfile, el.asrProfile.value || "siliconflow");
+    lsSet(LS.localModel, el.localModel.value);
+    lsSet(LS.localRuntime, el.localRuntime.value);
+    lsSet(LS.localGpu, el.localGpu.checked);
     lsSet(LS.asrApiKey, el.asrApiKey.value.trim());
     lsSet(LS.asrSecretId, el.asrSecretId.value.trim());
     lsSet(LS.asrSecretKey, el.asrSecretKey.value.trim());
@@ -1351,10 +1365,41 @@
 
   /* ---------------------------------------------------------- 页面切换 */
 
-  var PAGE_IDS = { home: "pageHome", uvr: "pageUvr", style: "pageStyle", set: "pageSet" };
+  var PAGE_IDS = { work: "pageHome", sep: "pageUvr", sub: "pageStyle", eng: "pageEng", set: "pageSet" };
 
-  function showPage(name) {
-    if (!PAGE_IDS[name]) name = "home";
+  /** 每页的二级分组，顺序必须与 index.html 里 .lv2 的按钮顺序一致。
+   *  写成函数而不是常量：面板测试按「function 名」抠代码来跑，常量抠不到。 */
+  function groupsOf(page) {
+    var M = {
+      work: ["run", "check", "out"],
+      sep: ["cfg", "env"],
+      sub: ["text", "look", "pos", "fix"],
+      eng: ["asr", "local"],
+      set: ["path", "diag", "gen"]
+    };
+    return M[page] || [];
+  }
+
+  /** 切到某一页里的二级分组。不传 gname 就回到该页第一个分组 */
+  function showGroup(page, gname) {
+    var pg = document.getElementById(PAGE_IDS[page] || "");
+    if (!pg) return;
+    var list = groupsOf(page);
+    if (!gname || list.indexOf(gname) < 0) gname = list[0];
+    var gs = pg.querySelectorAll(".grp");
+    for (var i = 0; i < gs.length; i++) {
+      gs[i].classList.toggle("on", gs[i].getAttribute("data-g") === gname);
+    }
+    var bs = pg.querySelectorAll(".lv2 button[data-g]");
+    for (var j = 0; j < bs.length; j++) {
+      bs[j].classList.toggle("on", bs[j].getAttribute("data-g") === gname);
+    }
+    state.group = state.group || {};
+    state.group[page] = gname;
+  }
+
+  function showPage(name, gname) {
+    if (!PAGE_IDS[name]) name = "work";
     state.page = name;
     for (var k in PAGE_IDS) {
       if (!PAGE_IDS.hasOwnProperty(k)) continue;
@@ -1367,21 +1412,23 @@
         // 必须**先清空再设** —— 否则连续切换时浏览器认为 animation 没变，不会重播。
         p.style.animation = "none";
         void p.offsetWidth;                     // 强制 reflow，让上面的清空真正生效
-        p.style.animation = (name === "home" ? "pgBack" : "pgIn") + " .19s ease";
+        p.style.animation = (name === "work" ? "pgBack" : "pgIn") + " .19s ease";
       }
     }
-    // 标签栏同步：页签高亮跟当前页走（v0.9.1 标签栏是唯一导航）
-    var TAB_IDS = { home: "tabHome", uvr: "tabUvr", style: "tabStyle", set: "tabSet" };
+    // 一级导航高亮（v1.0.0）：按 id 引用而不用 querySelectorAll ——
+    // 面板测试用的是精简 DOM stub（只有 getElementById），选择器方法在那边不存在。
+    var TAB_IDS = { work: "tabWork", sep: "tabSep", sub: "tabSub", eng: "tabEng", set: "tabSet" };
     for (var tk in TAB_IDS) {
       if (!TAB_IDS.hasOwnProperty(tk)) continue;
-      var tb = document.getElementById(TAB_IDS[tk]);
+      var tb = el[TAB_IDS[tk]];
       if (tb) tb.classList.toggle("on", tk === name);
     }
     // 换页回到顶部：面板本来就窄，停在上次的滚动位置很容易看漏顶部那张卡片
     try { window.scrollTo(0, 0); } catch (eScroll) { }
-    if (el.pageUvr && name === "uvr" && !state.uvr) checkUvrDeps(true);
-    if (el.pageStyle && name === "style" && !state.presets) loadPresets();
-    if (name === "style") { syncFavFont(); syncFavPreset(); }   // 进样式页时校准星标状态
+    if (el.pageUvr && name === "sep" && !state.uvr) checkUvrDeps(true);
+    if (el.pageStyle && name === "sub" && !state.presets) loadPresets();
+    if (name === "sub") { syncFavFont(); syncFavPreset(); }   // 进字幕页时校准星标状态
+    showGroup(name, gname);                                   // 二级分组（不传则回第一组）
   }
 
   /** 首页「人声分离设置」按钮上显示当前状态 —— 一眼看到开还是关 */
@@ -1392,8 +1439,7 @@
     var tgt = opt ? String(opt.textContent).split("（")[0] : "";
     el.uvrBadge.textContent = on ? ("开 · " + tgt) : "关";
     el.uvrBadge.className = "badge" + (on ? " ok" : "");
-    el.navUvr.textContent = on ? ("当前：开 · " + tgt) : "当前：关";
-    el.navUvr.className = on ? "on" : "";
+    // v1.0.0：快捷入口按钮已删，副标题随之取消（顶部一级导航取代）
   }
 
   /** 首页「字幕样式」按钮上显示当前的排布 / 字号 / 预设 */
@@ -1401,7 +1447,7 @@
     var parts = [el.mode.value === "single" ? "单层+关键帧" : "每句一层"];
     if (el.fontSize.value) parts.push(el.fontSize.value + " 号");
     parts.push(state.presetLabel || "无预设");
-    el.navStyle.textContent = parts.join(" · ");
+    // v1.0.0：快捷入口按钮已删，副标题随之取消（顶部一级导航取代）
   }
 
   /* ---------------------------------------------------------- 人声分离：依赖检测与安装 */
@@ -2975,6 +3021,11 @@
         if (params.asrApiKey) asrEnv.AESUB_API_KEY = params.asrApiKey;
         if (params.asrSecretId) asrEnv.AESUB_SECRET_ID = params.asrSecretId;
         if (params.asrSecretKey) asrEnv.AESUB_SECRET_KEY = params.asrSecretKey;
+        // 本地引擎（whisper.cpp）：数据目录与"是否用显卡"也走环境变量 ——
+        // 数据目录本来就在面板里可配，provider 不该去猜；NO_GPU=1 表示强制走 CPU。
+        var ddLocal = el.dataDir.value.trim();
+        if (ddLocal) asrEnv.AESUB_DATA_DIR = ddLocal;
+        if (el.localGpu && !el.localGpu.checked) asrEnv.AESUB_WHISPER_NO_GPU = "1";
         // 把"用哪家 + 哪个模型"都打出来。用户常常只选了服务商没选模型（走档位默认），
         // 识别质量不对时，光看服务商是没法定位问题的。
         var asrP = currentAsrProfile();
@@ -3025,11 +3076,10 @@
         el.btnOpenOut.disabled = false;
 
         if (!params.createLayers) {
-          log("已跳过创建图层 —— 主界面那个「识别完成后在 AE 中创建字幕图层」没勾选。", "warn");
-          log("  字幕文件已生成，可以直接用；想建图层就勾上再点一次（会重新上传识别），" +
-            "或者到 ⚙ 设置 → 输出与日志 点「用已有字幕建图层」直接建、不重新识别。", "warn");
+          // 没勾「自动落轨」⇒ 停下来让用户核对文字，确认后才建层（v1.0.0 的校对环节）
           created = null;
           skippedCount = 0;
+          enterCheckMode(result, params, sel, st);
           // 总开关关着时不建字幕层，但人声入轨是独立的诉求，照做
           return placeVocalsFromPipeline(result, params, sel).then(function () {
             showResult(st, sel.compName, null, 0, params);
@@ -3038,17 +3088,7 @@
         setStatus("正在 AE 中创建字幕图层…");
         setProgress(97);
         setStepCells(3);
-        return AeApi.createSubtitleLayers(sel.compName, result.outputs.json, {
-          mode: params.mode,
-          fontSize: params.fontSize,
-          color: params.color,
-          yPercent: params.yPercent,
-          fontPostScriptName: params.fontPostScriptName,
-          presetPath: params.presetPath,
-          prefix: params.subPrefix || "字幕",
-          nameMode: params.nameMode,
-          skipPresetOnShort: params.skipPresetShort
-        }).then(function (res) {
+        return doCreateLayers(result.outputs.json, params, sel.compName).then(function (res) {
           if (!res.ok) throw new Error("创建字幕图层失败：" + res.error);
           created = res.data.created;
           skippedCount = res.data.skipped || 0;
@@ -3317,7 +3357,402 @@
       fillModelPick((p.models || []).map(function (m) { return m.id; }),
         "档位内置清单（点「测试密钥」可拉取服务商实时清单）");
     }
+    // ---- 本地档位（whisper.cpp）：云端那套密钥 / 额度 / 模型清单对它都不适用 ----
+    var isLocal = p.provider === "local";
+    if (el.asrLocalBlock) el.asrLocalBlock.style.display = isLocal ? "" : "none";
+    if (el.asrAdvBox) el.asrAdvBox.style.display = isLocal ? "none" : "";
+    if (el.asrKeyNote) el.asrKeyNote.style.display = isLocal ? "none" : "";
+    if (el.asrQuota) el.asrQuota.style.display = isLocal ? "none" : "";
+    // 只在还没有快照时拉一次（避免每次刷新界面都起一个子进程）
+    if (isLocal && !state.asrLocalStatus) refreshLocalStatus();
+
     syncEngineBar();
+  }
+
+  /* ---------------------------------------------------------- 字幕校对（v1.0.0） */
+
+  /**
+   * 识别完成但没勾「自动落轨」⇒ 停在校对页。
+   * 面板直接读流水线产出的 .json（格式 [{text,startMs,endMs}]），逐条核对改字，
+   * 确认后**写回 .json** 再走原来的建层链路。
+   * 这样"改字"发生在建层之前，AE 里不会先冒出一堆需要手工改的图层。
+   */
+  function enterCheckMode(result, params, sel, st) {
+    var jsonPath = result && result.outputs && result.outputs.json;
+    if (!jsonPath) { log("× 拿不到识别结果路径，跳过校对。", "err"); return false; }
+    var segs = [];
+    try {
+      var raw = String(node.fs.readFileSync(jsonPath, "utf8")).replace(/^\uFEFF/, "");
+      var arr = JSON.parse(raw);
+      if (!Array.isArray(arr)) arr = (arr && arr.segments) || [];
+      segs = arr.map(function (s) {
+        var tx = String((s && s.text) == null ? "" : s.text);
+        return {
+          text: tx, orig: tx,
+          startMs: Number((s && s.startMs) || 0),
+          endMs: Number((s && s.endMs) || 0),
+          suspect: !!(s && s.suspect)
+        };
+      });
+    } catch (e) {
+      log("× 读不出识别结果（" + jsonPath + "）：" + (e && e.message ? e.message : e), "err");
+      return false;
+    }
+    if (!segs.length) { log("× 识别结果里没有字幕段，跳过校对。", "err"); return false; }
+
+    state.pending = { jsonPath: jsonPath, segs: segs, params: params, comp: sel.compName, st: st };
+    renderCheckList();
+    showPage("work", "check");
+    setStatus("识别完成：共 " + segs.length + " 条 —— 核对文字后点「确认并落轨」", "warn");
+    return true;
+  }
+
+  /** 把识别结果画成可编辑列表（时间码 + 输入框） */
+  function renderCheckList() {
+    if (!el.checkList || !state.pending) return;
+    var segs = state.pending.segs;
+    el.checkList.innerHTML = "";
+    for (var i = 0; i < segs.length; i++) {
+      (function (s) {
+        var row = document.createElement("div");
+        row.className = "cline" + (s.suspect ? " low" : "");
+        var t = document.createElement("span");
+        t.className = "t";
+        t.textContent = (s.startMs / 1000).toFixed(1) + "s";
+        var inp = document.createElement("input");
+        inp.value = s.text;
+        inp.addEventListener("input", function () {
+          s.text = inp.value;
+          row.classList.toggle("edited", s.text !== s.orig);
+          updateCheckStats();
+        });
+        row.appendChild(t);
+        row.appendChild(inp);
+        el.checkList.appendChild(row);
+      })(segs[i]);
+    }
+    if (el.checkEmpty) el.checkEmpty.style.display = segs.length ? "none" : "block";
+    updateCheckStats();
+  }
+
+  /** 顶部三格：条数 / 已改 / 低置信 */
+  function updateCheckStats() {
+    var segs = (state.pending && state.pending.segs) || [];
+    var ed = 0, lo = 0;
+    for (var i = 0; i < segs.length; i++) {
+      if (segs[i].text !== segs[i].orig) ed++;
+      if (segs[i].suspect) lo++;
+    }
+    if (el.statSent2) el.statSent2.textContent = String(segs.length);
+    if (el.statEdited) el.statEdited.textContent = String(ed);
+    if (el.statLow) el.statLow.textContent = String(lo);
+  }
+
+  /** 「确认并落轨」：写回 .json，再走原来的建层链路 */
+  function commitCheck() {
+    var p = state.pending;
+    if (!p) { log("还没有可落轨的识别结果，先点一次「生成字幕」。", "warn"); return; }
+    var out = [];
+    for (var i = 0; i < p.segs.length; i++) {
+      out.push({ text: p.segs[i].text, startMs: p.segs[i].startMs, endMs: p.segs[i].endMs });
+    }
+    try {
+      node.fs.writeFileSync(p.jsonPath, JSON.stringify(out), "utf8");
+      log("已把核对后的 " + out.length + " 条写回：" + p.jsonPath, "ok");
+    } catch (e) {
+      log("× 写回识别结果失败：" + (e && e.message ? e.message : e), "err");
+      return;
+    }
+    state.pending = null;
+    setStatus("正在 AE 中创建字幕图层…");
+    setProgress(97);
+    showPage("work", "out");
+    doCreateLayers(p.jsonPath, p.params, p.comp).then(function (res) {
+      if (!res.ok) throw new Error(res.error);
+      setStepCells(4);
+      log("已在合成「" + p.comp + "」中创建 " + res.data.created + " 个字幕图层" +
+        (res.data.skipped ? "（跳过 " + res.data.skipped + " 段）" : ""), "ok");
+      if (res.data.fontApplied) log("  字体已生效：" + res.data.fontApplied, "ok");
+      if (res.data.fontNote) log("  ⚠ " + res.data.fontNote, "warn");
+      if (res.data.presetApplied) log("  预设已应用：" + res.data.presetApplied, "ok");
+      setStatus("已落轨：" + res.data.created + " 个字幕图层", "ok");
+      setProgress(100);
+      if (p.st) showResult(p.st, p.comp, res.data.created, res.data.skipped || 0, p.params);
+    }).catch(function (err) {
+      setStatus("落轨失败：" + (err && err.message ? err.message : err), "err");
+      log("× 落轨失败：" + (err && err.message ? err.message : err), "err");
+    });
+  }
+
+  /** 建字幕层 —— 抽出来给「自动落轨」和「校对后落轨」共用 */
+  function doCreateLayers(jsonPath, params, compName) {
+    return AeApi.createSubtitleLayers(compName, jsonPath, {
+      mode: params.mode,
+      fontSize: params.fontSize,
+      color: params.color,
+      yPercent: params.yPercent,
+      fontPostScriptName: params.fontPostScriptName,
+      presetPath: params.presetPath,
+      prefix: params.subPrefix || "字幕",
+      nameMode: params.nameMode,
+      skipPresetOnShort: params.skipPresetShort
+    });
+  }
+
+  /* ---------------------------------------------------------- 本地引擎（whisper.cpp） */
+
+  /**
+   * 本地档位下拉：三个档位，并标出哪些已经下载。
+   * 数据来自 cli.js --local-status（查本机文件，不联网）。
+   */
+  function fillLocalModelSelect(st) {
+    if (!el.localModel) return;
+    var saved = lsGet(LS.localModel, "medium");
+    var list = (st && st.models && st.models.length) ? st.models : [
+      { id: "small", sizeMB: 466, note: "快" },
+      { id: "medium", sizeMB: 1530, note: "中文够用（推荐）" },
+      { id: "large-v3-turbo", sizeMB: 1620, note: "最准，最慢" }
+    ];
+    var done = {};
+    ((st && st.downloaded) || []).forEach(function (d) { done[d.id] = true; });
+    el.localModel.innerHTML = "";
+    list.forEach(function (mo) {
+      var o = document.createElement("option");
+      o.value = mo.id;
+      o.textContent = mo.id + " · 约 " + mo.sizeMB + " MB · " + (mo.note || "") +
+        (done[mo.id] ? "（已下载）" : "");
+      el.localModel.appendChild(o);
+    });
+    el.localModel.value = saved;
+    if (el.localModel.selectedIndex < 0) el.localModel.selectedIndex = 1;
+    // ⚠ 关键：保存的档位没下载、而别的档位已经下载了 ⇒ 自动切到已下载的那个。
+    //   否则用户会看到「未下载」，而他明明有模型 —— 只是档位与文件对不上（实测踩过：
+    //   存档里是 medium，磁盘上只有 large-v3-turbo）。
+    if (!done[el.localModel.value]) {
+      for (var i = 0; i < list.length; i++) {
+        if (done[list[i].id]) {
+          el.localModel.value = list[i].id;
+          try { lsSet(LS.localModel, list[i].id); } catch (ePick) { }
+          break;
+        }
+      }
+    }
+  }
+
+  /** 状态格：三态用现成的 .envgrid 变体类（off 灰 / warn 黄 / bad 红），不新增 CSS */
+  function setLocalCell(id, cls, txt) {
+    var c = el[id];
+    if (!c) return;
+    c.className = cls ? "er " + cls : "er";
+    var b = c.querySelector("b");
+    if (b) b.textContent = txt;
+  }
+
+  /** 本地环境四格：whisper.cpp / 模型 / GPU / 离线 */
+  function renderLocalStatus(st) {
+    if (!el.asrLocalBlock || !st) return;
+    var cur = el.localModel ? el.localModel.value : "medium";
+    var has = {};
+    (st.downloaded || []).forEach(function (x) { has[x.id] = true; });
+    var base = "";
+    try { base = node && node.path ? node.path.basename(st.exe.path || "") : ""; } catch (e) { base = ""; }
+    var gpuOn = !(el.localGpu && !el.localGpu.checked);
+
+    setLocalCell("lgExe", st.exe.path ? "" : "bad", st.exe.path ? (base + " 已就位") : "未安装");
+    setLocalCell("lgModel", has[cur] ? "" : (st.exe.path ? "warn" : "off"),
+      has[cur] ? (cur + " · 已下载") : "未下载");
+    setLocalCell("lgGpu", st.cuda.ok ? "" : (gpuOn ? "warn" : "off"),
+      st.cuda.ok ? "可用 · 检测到 CUDA" : (gpuOn ? "未检测到 CUDA" : "已关闭 · 走 CPU"));
+    setLocalCell("lgOffline", "", "断网也能跑");
+
+    var hint = st.detail || "";
+    var others = (st.downloaded || []).map(function (x) { return x.id; });
+    if (st.exe.path && !has[cur]) {
+      hint = "当前档位（" + cur + "）的模型还没下载。" +
+        (others.length
+          ? "你已下载：" + others.join("、") + "，把它选成档位就能用。"
+          : "点「下载模型」装当前档位。");
+    }
+    if (el.localModelHint) {
+      el.localModelHint.textContent = hint + "（模型目录：" + (st.modelDir || "?") + "）";
+    }
+    // 「模型与引擎 › 本地模型」那一页的说明也刷新成真实状态，别只写一句通用提示
+    if (el.engLocalNote) {
+      el.engLocalNote.textContent = has[cur]
+        ? "当前档位 " + cur + " 的权重已就位。模型目录：" + (st.modelDir || "?")
+        : ("当前档位 " + cur + " 的权重未下载" +
+           (others.length ? "；已下载：" + others.join("、") + "。" : "。"));
+    }
+  }
+
+  /** 拉一次本地环境状态（cli.js --local-status）—— 只查本机文件，不联网、不花钱 */
+  function refreshLocalStatus() {
+    if (!node || !state.env || !state.env.node || !el.pipelineDir.value.trim()) return;
+    var pipe = el.pipelineDir.value.trim();
+    var cli = joinPath(pipe, "cli.js");
+    var env = {};
+    try { env = Object.assign({}, process.env); } catch (e) { env = {}; }
+    var dd = el.dataDir.value.trim();
+    if (dd) env.AESUB_DATA_DIR = dd;
+    if (el.localGpu && !el.localGpu.checked) env.AESUB_WHISPER_NO_GPU = "1";
+    node.child_process.execFile(
+      state.env.node.path, [cli, "--local-status"],
+      { cwd: pipe, windowsHide: true, timeout: 20000, maxBuffer: 1 << 20, env: env },
+      function (err, stdout) {
+        if (err) {
+          if (el.localModelHint) el.localModelHint.textContent = "本地环境检测失败：" + (err.message || err);
+          return;
+        }
+        var lines = String(stdout || "").trim().split(/\r?\n/);
+        var d = null;
+        for (var i = lines.length - 1; i >= 0; i--) {
+          try { d = JSON.parse(lines[i]); break; } catch (e2) { /* 不是 JSON 就往前找 */ }
+        }
+        if (!d) return;
+        state.asrLocalStatus = d;
+        fillLocalModelSelect(d);
+        renderLocalStatus(d);
+      }
+    );
+  }
+
+  /**
+   * 「下载模型」：**真下载**（whisper.cpp 二进制 + 当前档位权重），带进度与断点续传。
+   *
+   * 为什么是"一次装齐"而不是让用户自己找文件：这两个东西的来源都不好找
+   * （二进制在 GitHub，权重在 HuggingFace），而且国内网络两个都要绕 ——
+   * 流水线里已经把绕法写死了（走 api.github.com 与 hf-mirror），面板只要调它。
+   */
+  function fetchLocal() {
+    if (state.localBusy || state.running) return;
+    if (!node || !state.env || !state.env.node) {
+      setStatus("外部 Node 不可用 —— 先点「重新检测环境」", "err");
+      return;
+    }
+    var pipe = el.pipelineDir.value.trim();
+    if (!pipe) { setStatus("流水线目录是空的，先在下面填好", "err"); return; }
+    var cli = joinPath(pipe, "cli.js");
+    var dd = el.dataDir.value.trim();
+    var env = {};
+    try { env = Object.assign({}, process.env); } catch (e) { env = {}; }
+    if (dd) env.AESUB_DATA_DIR = dd;
+
+    var which = (el.localRuntime && el.localRuntime.value) || "blas";
+    var mo = (el.localModel && el.localModel.value) || "medium";
+
+    state.localBusy = true;
+    el.btnLocalModel.disabled = true;
+    setProgress(0);
+    log("");
+    log("=== 下载本地引擎 ===");
+    log("  运行时：" + which + " · 模型：" + mo);
+    log("  （二进制来自 GitHub、权重来自 hf-mirror；断了会自动续传，慢但能下完）");
+    setStatus("开始下载…");
+
+    var args = [cli, "--local-fetch", "all",
+                "--local-which", which,
+                "--local-model", mo];
+    if (dd) args.push("--data-dir", dd);
+
+    runPipeline(state.env.node.path, args, function (ev) {
+      if (ev && ev.percent != null) setProgress(ev.percent);
+      if (ev && ev.message) setStatus(ev.message);
+      if (ev && ev.retry) log("  " + ev.message, "warn");
+      if (ev && ev.stage === "extract") log("  解压中…");
+    }, env).then(function () {
+      log("  下载流程结束，重新检测本地环境…");
+    }).catch(function (err) {
+      log("× 下载失败：" + (err && err.message ? err.message : err), "err");
+      setStatus("下载失败 —— 详见下方日志", "err");
+    }).then(function () {
+      state.localBusy = false;
+      el.btnLocalModel.disabled = false;
+      setProgress(0);
+      state.asrLocalStatus = null;   // 清掉快照，让 syncAsrUi 重新探一次
+      refreshLocalStatus();
+    });
+  }
+
+  /**
+   * 「清理模型」：把已下载的**本地权重**删到回收站。
+   * 刻意不动 whisper.cpp 二进制 —— 它才十几 MB，删了下次还得重下，没意义。
+   */
+  function doCleanLocalModels() {
+    if (state.busyClean || state.localBusy || state.running) return;
+    if (!AeClean.available()) { setStatus("面板里的 Node 未启用，无法清理", "err"); return; }
+    var dd = el.dataDir.value.trim();
+    if (!dd) { setStatus("先把「数据目录」填上 —— 本地权重就放在它下面", "err"); return; }
+    var dir = joinPath(dd, "models", "whisper");
+
+    var items = [];
+    try {
+      node.fs.readdirSync(dir).forEach(function (n) {
+        if (!/\.bin$/i.test(n)) return;
+        var p = joinPath(dir, n);
+        items.push({ name: n, path: p, size: node.fs.statSync(p).size });
+      });
+    } catch (e) { items = []; }
+
+    if (!items.length) {
+      log("清理本地模型：目录里没有已下载的权重（" + dir + "）。", "ok");
+      setStatus("没有已下载的本地模型", "ok");
+      return;
+    }
+
+    var total = items.reduce(function (a, b) { return a + b.size; }, 0);
+    var rows = ['<div class="cleanSub" style="margin-bottom:6px">以下权重将被删到<b>回收站</b>：</div>'];
+    items.forEach(function (it) {
+      rows.push('<div class="cleanGroup"><span class="cgBody"><span class="cgName">' +
+        it.name + '</span><span class="cgSize">' + fmtBytes(it.size) + "</span></span></div>");
+    });
+    rows.push('<div class="cleanTotal">合计 <b>' + items.length + "</b> 个 · <b>" + fmtBytes(total) + "</b></div>");
+
+    state.busyClean = true;
+    el.btnCleanLocal.disabled = true;
+    confirmDialog({
+      title: "清理本地模型",
+      bodyHtml: rows.join(""),
+      showPerm: true,
+      permDefault: true,
+      okText: "确认清理",
+      hint: "删掉后想再用就要重新下载（Medium 约 1.5 GB）。whisper.cpp 二进制<strong>不动</strong>。",
+    }).then(function (r) {
+      if (!r.ok) { setStatus("已取消"); return null; }
+      log("");
+      log("=== 清理本地模型 ===");
+      return AeClean.recycle(items, { permanentFallback: r.perm }).then(function (rr) {
+        var msg = "已删除 " + rr.recycled + " 个 · 释放 " + fmtBytes(rr.freedBytes);
+        if (rr.permanent) msg += "（其中 " + rr.permanent + " 个已彻底删除）";
+        if (rr.skipped) msg += " · 跳过 " + rr.skipped + " 个";
+        log("  " + msg, rr.skipped ? "warn" : "ok");
+        setStatus("本地模型已清理", "ok");
+      });
+    }).catch(function (err) {
+      log("× 清理本地模型失败：" + (err && err.message ? err.message : err), "err");
+      setStatus("清理失败", "err");
+    }).then(function () {
+      state.busyClean = false;
+      el.btnCleanLocal.disabled = false;
+      state.asrLocalStatus = null;
+      refreshLocalStatus();
+    });
+  }
+
+  /** 「打开模型目录」：自动清理还没接，至少让用户能看到文件该放哪儿 */
+  function openLocalModelDir() {
+    var st = state.asrLocalStatus;
+    var dir = (st && st.modelDir) || "";
+    if (!dir) { setStatus("还没拿到模型目录，先点「重新检测环境」", "warn"); return; }
+    try {
+      if (node && node.fs && !node.fs.existsSync(dir)) node.fs.mkdirSync(dir, { recursive: true });
+      if (node && node.child_process) {
+        node.child_process.spawn("explorer.exe", [dir.replace(/\//g, "\\")], { detached: true });
+      }
+      log("已打开模型目录：" + dir);
+      setStatus("已打开模型目录", "ok");
+    } catch (e) {
+      log("× 打不开模型目录：" + (e && e.message ? e.message : e), "err");
+    }
   }
 
   /** 在系统默认浏览器里打开链接（CEP 里普通的 <a> 点了没反应） */  function openExternal(url) {
@@ -3493,7 +3928,10 @@
       asrApiKey: el.asrApiKey.value.trim(),
       asrSecretId: el.asrSecretId.value.trim(),
       asrSecretKey: el.asrSecretKey.value.trim(),
-      asrModel: el.asrModel.value.trim(),
+      // 本地档位的"模型"是那三个档位（small / medium / …），不是云端那行手填框
+    asrModel: asrSel.provider === "local"
+      ? String(el.localModel ? el.localModel.value : "").trim()
+      : el.asrModel.value.trim(),
       asrBaseUrl: el.asrBaseUrl.value.trim(),
       asrPrompt: el.asrPrompt.value.trim(),
       asrChunk: el.asrChunk.checked,
@@ -3552,8 +3990,8 @@
     el.noLayerWarn.style.display = off ? "block" : "none";
     // v0.9.1 修复：主按钮是两行式（b + span），直接改 textContent 会把结构打平
     var runB = el.btnRun.querySelector("b"), runS = el.btnRun.querySelector("span");
-    if (runB) runB.textContent = off ? "开始生成（只出字幕文件）" : "▶　生成字幕";
-    if (runS) runS.textContent = off ? "识别后只保存 .srt / .json" : "分离 + 识别 + 建层";
+    if (runB) runB.textContent = "▶　生成字幕";
+    if (runS) runS.textContent = off ? "识别后停下来，先校对再落轨" : "分离 + 识别 + 自动落轨";
   }
 
   /** 输出目录：优先本会话真正用过的那个，保证"用已有字幕建图层"能找到上次的产物 */
@@ -3761,14 +4199,35 @@
     var groups = null;
 
     function updateTotal(picked) {
-      var box = el.cfmBody.querySelector("#cleanTotal");
-      if (!box || !groups) return;
+      if (!groups) return;
       var bytes = 0, count = 0;
       groups.forEach(function (g) {
         if (picked.indexOf(g.key) < 0) return;
         bytes += g.bytes; count += g.count;
       });
-      box.innerHTML = "将清理 <b>" + count + " 项</b> · 预计释放 <b>" + fmtBytes(bytes) + "</b>";
+      var pickedKeys = picked || [];
+      // 逐行高亮：勾上的那条给个左侧亮条（点一下就有反馈）
+      var rows = el.cfmBody.querySelectorAll("label.cleanGroup");
+      for (var ri = 0; ri < rows.length; ri++) {
+        var cb = rows[ri].querySelector("input[type=checkbox][data-key]");
+        var on = cb ? pickedKeys.indexOf(cb.getAttribute("data-key")) >= 0 : false;
+        rows[ri].className = "cleanGroup" + (rows[ri].classList.contains("locked") ? " locked" : "") + (on ? " on" : "");
+      }
+      // 顶部概览（不用滚到底才知道要删多少）
+      if (el.cfmCount) el.cfmCount.textContent = String(count);
+      if (el.cfmSize) el.cfmSize.textContent = fmtBytes(bytes);
+      // 确认按钮直接写明将清理什么；一个都没勾就禁用，免得点了以为坏了
+      if (el.cfmOk) {
+        el.cfmOk.disabled = !count;
+        el.cfmOk.textContent = count
+          ? ("确认清理 · " + count + " 项 · " + fmtBytes(bytes))
+          : "确认清理";
+      }
+      if (el.cfmHint) {
+        el.cfmHint.textContent = count
+          ? "删除的文件会进回收站，随时可以还原。"
+          : "没有勾选任何项 —— 现在点确认什么也不会删。";
+      }
     }
 
     return AeClean.scan(paths).then(function (res) {
@@ -3780,9 +4239,9 @@
         return null;
       }
 
+      // 引导语与合计都在弹窗固定结构里（见 index.html 的 .cfmHead / .cfmTools），
+      // 这里只生成清单本身 —— 两处都写会重复（旧版就是这么冒出两套清单的）
       var rows = [];
-      rows.push('<div class="cleanSub" style="margin-bottom:6px">勾选要清理的内容，确认后执行。' +
-        '删除的文件会进<b>回收站</b>，可还原。</div>');
       groups.forEach(function (g) {
         var locked = !!g.locked;
         rows.push(
@@ -3791,13 +4250,12 @@
             ? '<span style="width:13px;flex:0 0 13px"></span>'
             : '<input type="checkbox" data-key="' + g.key + '"' + (g.defaultOn ? " checked" : "") + '>') +
           '<span class="cgBody">' +
-          '<span class="cgName">' + g.label + "</span>" +
-          '<span class="cgSize">' + g.count + " 个 · " + fmtBytes(g.bytes) + "</span>" +
+          '<span class="cgTop"><span class="cgName">' + g.label + "</span>" +
+          '<span class="cgSize">' + g.count + " 个 · " + fmtBytes(g.bytes) + "</span></span>" +
           '<span class="cgNote">' + g.note + "</span>" +
           "</span></label>"
         );
       });
-      rows.push('<div class="cleanTotal" id="cleanTotal"></div>');
 
       return confirmDialog({
         title: "清理插件产生的文件",
@@ -4249,7 +4707,9 @@
       "subPrefix", "nameMode", "snapSpeech", "skipPresetShort", "dataDir", "stripPunct",
       // 识别引擎
       "asrProfile", "asrApiKey", "asrSecretId", "asrSecretKey",
-      "asrModel", "asrBaseUrl", "asrPrompt", "asrChunk"];
+      "asrModel", "asrBaseUrl", "asrPrompt", "asrChunk",
+      // 本地引擎（whisper.cpp）
+      "localModel", "localRuntime", "localGpu"];
     persistKeys.forEach(function (k) {
       el[k].addEventListener("change", function () {
         saveSettings();
@@ -4258,7 +4718,14 @@
         if (k === "uvrOn" || k === "uvrTarget") syncUvrUi();
         if (k === "asrProfile") {
           state.asrModelList = null;   // 模型清单是按服务商给的，换档位必须作废重拉
+          state.asrLocalStatus = null; // 本地环境快照同理（换档位要重探）
           syncAsrUi();
+        }
+        // 本地档：换模型档位 / 开关显卡后，四格状态与提示要跟着重算
+        if (k === "localModel" && state.asrLocalStatus) renderLocalStatus(state.asrLocalStatus);
+        if (k === "localGpu") {
+          if (state.asrLocalStatus) renderLocalStatus(state.asrLocalStatus);
+          else refreshLocalStatus();
         }
         // 手改模型名时也要刷新"当前将使用"那行提示
         if (k === "asrModel") syncAsrUi();
@@ -4275,6 +4742,10 @@
       if (p && p.consoleUrl) openExternal(p.consoleUrl);
     });
     el.btnAsrTest.addEventListener("click", testAsrKey);
+    // 本地档位：下载页 / 打开模型目录
+    if (el.btnLocalModel) el.btnLocalModel.addEventListener("click", fetchLocal);
+    if (el.btnLocalDir) el.btnLocalDir.addEventListener("click", openLocalModelDir);
+    if (el.btnCleanLocal) el.btnCleanLocal.addEventListener("click", doCleanLocalModels);
 
     // 「挑一个」选中后写回输入框（输入框才是真正的参数来源，下拉只是方便挑）
     el.asrModelPick.addEventListener("change", function () {
@@ -4299,7 +4770,17 @@
     el.btnGear.addEventListener("click", function () { showPage("set"); });
     // 支持作者：♥ → 系统浏览器打开插件目录里的 support.html
     if (el.btnSupport) el.btnSupport.addEventListener("click", openSupportPage);
-    el.btnEngChange.addEventListener("click", function () { showPage("set"); });
+
+    // 清理弹窗：全选 / 全不选（只作用于可勾选项，锁定项不参与）。
+    // 改完派发一次 change，让 updateTotal 把概览与确认按钮文案一起刷新。
+    function cfmToggleAll(on) {
+      var boxes = el.cfmBody.querySelectorAll("input[type=checkbox][data-key]");
+      for (var i = 0; i < boxes.length; i++) boxes[i].checked = on;
+      if (boxes.length) boxes[0].dispatchEvent(new Event("change", { bubbles: true }));
+    }
+    if (el.cfmAll) el.cfmAll.addEventListener("click", function () { cfmToggleAll(true); });
+    if (el.cfmNone) el.cfmNone.addEventListener("click", function () { cfmToggleAll(false); });
+    el.btnEngChange.addEventListener("click", function () { showPage("eng"); });
     // 密钥显示 / 隐藏：粘贴后核对再收起
     [["btnKeyEyeApi", "asrApiKey"], ["btnKeyEyeSecret", "asrSecretKey"]].forEach(function (pair) {
       var btn = el[pair[0]], inp = el[pair[1]];
@@ -4320,11 +4801,49 @@
         openFilePath(f);
       });
     });
-    el.btnGoUvr.addEventListener("click", function () { showPage("uvr"); });
-    el.btnGoStyle.addEventListener("click", function () { showPage("style"); });
-    Array.prototype.forEach.call(document.querySelectorAll("[data-home]"), function (b) {
-      b.addEventListener("click", function () { showPage("home"); });
+    // 快捷入口按钮已删（v1.0.0）：顶部一级导航取代了它们，这里不再需要绑定
+    // 一级导航
+    Array.prototype.forEach.call(document.querySelectorAll("#lv1 button[data-page]"), function (b) {
+      b.addEventListener("click", function () { showPage(b.getAttribute("data-page")); });
     });
+    // 二级分段（每页各自一组）
+    Array.prototype.forEach.call(document.querySelectorAll(".lv2 button[data-g]"), function (b) {
+      b.addEventListener("click", function () {
+        showGroup(state.page, b.getAttribute("data-g"));
+      });
+    });
+    // 新页里的三个跳转按钮：复用原有逻辑，不复制实现
+    if (el.btnLocalModelGo) el.btnLocalModelGo.addEventListener("click", function () {
+      showPage("eng", "asr");
+      if (el.btnLocalModel) el.btnLocalModel.scrollIntoView({ block: "center" });
+    });
+    if (el.btnLocalDirGo && el.btnLocalDir) el.btnLocalDirGo.addEventListener("click", function () {
+      el.btnLocalDir.click();
+    });
+    if (el.btnResetGo && el.btnReset) el.btnResetGo.addEventListener("click", function () {
+      el.btnReset.click();
+    });
+    // 校对：确认落轨 / 重新识别
+    if (el.btnCommit) el.btnCommit.addEventListener("click", commitCheck);
+    if (el.btnRedo) el.btnRedo.addEventListener("click", function () {
+      showPage("work", "run");
+      log("重新识别一遍 —— 回到执行页再跑一次。", "warn");
+      if (el.btnRun) el.btnRun.click();
+    });
+    // 字幕位置九宫格：只切选中态与文字，落值逻辑随建层一起做
+    if (el.posGrid) {
+      var POS_NAME = { tl: "左上", tc: "上中", tr: "右上", ml: "左中", mc: "正中",
+                       mr: "右中", bl: "左下", bc: "下居中", br: "右下" };
+      el.posGrid.addEventListener("click", function (ev) {
+        var bt = ev.target.closest ? ev.target.closest("button[data-pos]") : null;
+        if (!bt) return;
+        Array.prototype.forEach.call(el.posGrid.querySelectorAll("button"), function (x) {
+          x.classList.remove("on");
+        });
+        bt.classList.add("on");
+        if (el.posName) el.posName.textContent = POS_NAME[bt.getAttribute("data-pos")] || "";
+      });
+    }
 
     // ---- 人声分离依赖 ----
     el.btnUvrCheck.addEventListener("click", function () { saveSettings(); checkUvrDeps(false); });
@@ -4449,10 +4968,21 @@
   function init() {
     var ids = [
       // 页面容器
-      "pageHome", "pageUvr", "pageStyle", "pageSet",
+      "pageHome", "pageUvr", "pageStyle", "pageEng", "pageSet",
+      // 导航容器与一级标签
+      "lv1", "tabWork", "tabSep", "tabSub", "tabEng", "tabSet",
+      // 校对（v1.0.0 新增）
+      "statSent2", "statEdited", "statLow", "checkList", "checkEmpty", "btnCommit", "btnRedo",
+      // 位置与排版（v1.0.0 新增）
+      "posGrid", "posName", "posX", "posY", "safeArea", "lineHeight", "maxLines",
+      // 新页跳转
+      "btnLocalModelGo", "btnLocalDirGo", "btnResetGo", "engLocalNote",
+      // 校对（v1.0.0 实测）
+      "checkList", "checkEmpty", "btnCommit", "btnRedo",
+      "statSent2", "statEdited", "statLow",
       // 首页
       "envBadge", "btnGear", "btnSupport", "selInfo", "selHint", "btnRefresh", "btnRun",
-      "btnGoUvr", "btnGoStyle", "navUvr", "navStyle",
+      
       "createLayers", "noLayerWarn", "bar", "status", "snapSpeech", "stripPunct",
       "btnFreeMem", "btnCleanFiles", "maintOut", "btnSeparate",
       "resultCard", "resultInfo", "resultTip", "btnOpenOut",
@@ -4476,8 +5006,9 @@
       "asrConsoleRow", "btnAsrConsole", "btnAsrTest", "asrModel", "asrModelPick", "asrBaseUrl", "asrPrompt", "asrChunk",
       "btnTest", "btnRebuild", "nodePath", "pipelineDir", "dataDir", "envDetail",
       "btnProbe", "btnReset", "btnSelfTest",
-      // 通用二级确认弹层
+      // 通用二级确认弹层（cfmCount/cfmSize/cfmAll/cfmNone 为 v0.9.2 重做时新增）
       "cfmOverlay", "cfmTitle", "cfmBody", "cfmPermWrap", "cfmPerm", "cfmOk", "cfmCancel", "cfmHint",
+      "cfmCount", "cfmSize", "cfmAll", "cfmNone",
       // 询问弹层
       "askOverlay", "askBody", "askHint", "askReplace", "askBelow", "askCancel",
       // v0.9.1 新组件
@@ -4486,6 +5017,10 @@
       "statGrid", "statSent", "statChars", "statEngine", "statTimeline",
       "chipsRow", "chipSrt", "chipJson", "chipTxt",
       "envGridUvr", "envGridSet",
+      // 本地引擎（whisper.cpp）
+      "asrLocalBlock", "asrAdvBox", "asrKeyNote", "localModel", "localModelHint",
+      "envGridLocal", "lgExe", "lgModel", "lgGpu", "lgOffline",
+      "btnLocalModel", "btnLocalDir", "btnCleanLocal", "localGpu", "localRuntime",
       "keyRowApi", "btnKeyEyeApi", "keyRowSecret", "btnKeyEyeSecret"
     ];
     ids.forEach(function (id) { el[id] = document.getElementById(id); });
@@ -4514,13 +5049,13 @@
     migrateSettings();      // 必须在 loadSettings 之前：老存档里的总开关要先归位
     loadSettings();
     bindEvents();
-    showPage("home");       // 每次打开都从首页开始
+    showPage("work");       // 每次打开都从工作台开始
     syncNoLayerWarn();      // 让总开关的当前状态（含按钮文案）在面板一打开就如实反映
     syncUvrUi();            // 人声分离状态 → 首页入口按钮的副标题
     syncStyleUi();          // 排布 / 字号 / 预设 → 首页入口按钮的副标题
     syncEngineBar();        // 引擎状态条初值（引擎清单异步加载后会再刷一次）
 
-    log("Noniika v0.9.1");
+    log("Noniika v1.0.0");
     log("用法：在时间线上选中要处理的素材图层 → 点「开始生成字幕」。");
     if (MIGRATE_NOTE) log("▲ " + MIGRATE_NOTE, "warn");
     log("提示：识别时音频会上传到所选引擎的服务商云端，请勿处理机密内容。", "warn");

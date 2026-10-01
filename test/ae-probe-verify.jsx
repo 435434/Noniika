@@ -1,6 +1,6 @@
 /* AE 实测：验证「渲染验证」法是否可靠 + 新体检字段（画面外 / 无填充）能否抓出 */
 (function () {
-  var OUT = "C:/Users/kunku/Desktop/AE字幕插件/test/output";
+  var OUT = "E:/项目文件/agent/ae字幕插件/test/output";
   var PROBE = OUT + "/probe";
   var PROG = OUT + "/ae-probe-progress.txt";
   var RESULT = OUT + "/ae-probe-result.json";

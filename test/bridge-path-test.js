@@ -45,8 +45,13 @@ console.log("=== ① 实测形态：getSystemPath 返回 file:///C:/… （本�
   const b = load(() => "file:///" + wantReal);
   const got = b.extensionPath();
   check("extensionPath() 剥掉了 file:// 前缀", got === wantReal, JSON.stringify(got));
-  check("拿它拼 support.html：文件**真的存在**",
-    fs.existsSync(joinPath(got, "support.html")), joinPath(got, "support.html"));
+  // ⚠ 不能硬断言"文件存在"：**自用版刻意不带支持页**（去掉 ♥ 支持作者），只有分发包有。
+  //   这里真正要验的是"剥掉 file:/// 前缀之后，拼出来的路径落在扩展目录里"。
+  const _sp = joinPath(got, "support.html");
+  check("剥前缀后拼出的路径落在扩展目录里（file:/// 坑的核心）",
+    _sp.indexOf(wantReal) === 0, _sp);
+  console.log("  ℹ support.html：" + (fs.existsSync(_sp)
+    ? "在（分发包形态）" : "不在（自用版形态 —— 刻意不带 ♥ 支持页，属预期）"));
 }
 
 console.log("\n=== ①b 用真实分发包的目录布局验证（node-runtime / pipeline 都在扩展目录下）===");
@@ -72,7 +77,8 @@ console.log("\n=== ② 兼容形态：返回普通路径（别的 CEP 版本可�
 {
   const b = load(() => wantReal);
   check("普通路径原样返回", b.extensionPath() === wantReal, b.extensionPath());
-  check("support.html 同样能找到", fs.existsSync(joinPath(b.extensionPath(), "support.html")));
+  check("普通路径形态：拼出的路径同样落在扩展目录里",
+    joinPath(b.extensionPath(), "support.html").indexOf(wantReal) === 0);
 }
 
 console.log("\n=== ③ 反斜杠 + URI 转义（用户名带空格的情况）===");

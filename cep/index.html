@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <title>Noniika</title>
 <!--
-  Noniika v0.9.1 · UI 改版（按 design/UI设计上下文_Kimi-K3.md 实施）
+  Noniika v1.0.0 · 信息架构五页（工作台 / 人声分离 / 字幕 / 模型与引擎 / 设置）
   ============================================================
   相对上一版的结构变化（功能零删减，旧 121 个 id 全保留）：
     · 识别引擎状态条 engbar（首页 header 下）：引擎/模型/密钥一眼可见
@@ -24,16 +24,32 @@
        阅读顺序 = 操作顺序（§3.6 原则 1）：
        素材 → 主动作 → 子设置入口 → 开关 → 进度 → 结果 → 日志
        ============================================================ -->
-  <div class="page on" id="pageHome">
+  <!-- ============================================================
+       全局顶栏（品牌 + 支持 + 环境 + 设置）与一级导航
+       一级导航常显，不靠「返回」按钮 —— 层级恒定两级，点不深
+       ============================================================ -->
+  <header class="topbar">
+    <h1>𝙉𝙤𝙣𝙞𝙞𝙠𝙖</h1>
+    <div class="hdrRight">
+      <button class="icon heart" id="btnSupport" title="支持作者 · 赞赏码 / 爱发电">♥</button>
+      <span id="envBadge" class="badge">检测中…</span>
+      <button class="icon" id="btnGear" title="设置">⚙</button>
+    </div>
+  </header>
 
-    <header>
-      <h1>𝙉𝙤𝙣𝙞𝙞𝙠𝙖</h1>
-      <div class="hdrRight">
-        <button class="icon heart" id="btnSupport" title="支持作者 · 赞赏码 / 爱发电">♥</button>
-        <span id="envBadge" class="badge">检测中…</span>
-        <button class="icon" id="btnGear" title="设置">⚙</button>
-      </div>
-    </header>
+  <nav class="lv1" id="lv1">
+    <button data-page="work" id="tabWork" class="on">工作台</button>
+    <button data-page="sep" id="tabSep">人声分离</button>
+    <button data-page="sub" id="tabSub">字幕</button>
+    <button data-page="eng" id="tabEng">模型与引擎</button>
+    <button data-page="set" id="tabSet">设置</button>
+  </nav>
+
+  <div class="page on" id="pageHome">
+    <nav class="lv2"><button data-g="run" class="on">执行</button><button data-g="check">校对</button><button data-g="out">结果与日志</button></nav>
+
+    <div class="grp on" data-g="run">
+
 
     <!-- 新组件 · 识别引擎状态条（P1/P2：现在用哪个引擎、密钥配没配，一眼可见） -->
     <div class="engbar" id="engBar" title="当前识别引擎 / 模型 / 密钥状态">
@@ -71,41 +87,51 @@
       <div class="st" id="stLayer">建层</div>
     </div>
 
-    <!-- 两个独立菜单入口：标题是"去哪儿"，副标题是"现在是什么"（§3.6 原则 6） -->
-    <div class="actions sub">
-      <button class="navbtn" id="btnGoUvr" title="进入人声分离">
-        <b>人声分离设置</b><span id="navUvr">当前：关</span>
-      </button>
-      <button class="navbtn" id="btnGoStyle" title="进入字幕样式">
-        <b>字幕样式</b><span id="navStyle">每句一层 · 72</span>
-      </button>
-    </div>
-    <div class="hint" style="margin-top:0">其余设置（识别选项 / 输出与日志 / 环境与诊断）在右上角 <b>⚙</b> 里。</div>
-
     <!-- 维护条：破坏性动作降级为 ghost 小按钮、独立成区（§3.6 原则 3） -->
-    <div class="actions fill maint">
-      <button id="btnFreeMem" class="ghost small" title="把各程序占着不用的内存还给系统。不结束任何进程，也会跳过 AE 本身">
-        <svg class="ico" viewBox="0 0 16 16" aria-hidden="true"><path d="M8 1.6c2.1 2.1 3.1 4.3 3.1 6.6 0 .5-.05 1-.15 1.5H5.05c-.1-.5-.15-1-.15-1.5C4.9 5.9 5.9 3.7 8 1.6z"/><circle cx="8" cy="6.1" r="1.15"/><path d="M5.1 6.9 2.9 9.2v2.4l2.2-1.2M10.9 6.9l2.2 2.3v2.4l-2.2-1.2M7.1 11.4c.25 1.6.55 2.4 1 2.4h-.2c.45 0 .75-.8 1-2.4"/></svg>
-        清理内存</button>
-      <button id="btnCleanFiles" class="ghost small" title="清理插件产生的中间音频、人声分离产物、临时文件。删到回收站，可还原">
-        <svg class="ico" viewBox="0 0 16 16" aria-hidden="true"><path d="M2.6 4.4h10.8"/><path d="M6.1 4.4V2.9h3.8v1.5"/><path d="M3.9 4.4l.72 8.6c.05.62.57 1.1 1.19 1.1h4.38c.62 0 1.14-.48 1.19-1.1l.72-8.6"/><path d="M6.7 6.9v4.4M9.3 6.9v4.4"/></svg>
-        清理插件文件</button>
-    </div>
-    <div id="maintOut" class="hint" style="margin-top:6px"></div>
 
     <!-- 总开关：决定这次点击有没有产出，必须常显（§3.6 原则 7 位置守恒） -->
-    <label class="chk always" title="关掉它只会生成 .srt / .json 文件">
-      <input type="checkbox" id="createLayers" checked> 识别完成后在 AE 中创建字幕图层
+    <label class="chk always" title="勾上 = 识别完直接落轨；不勾 = 识别完停下来，先让你核对文字">
+      <input type="checkbox" id="createLayers" checked> 识别完成后自动落轨
     </label>
     <div id="noLayerWarn" class="hint warnText" style="display:none">
-      当前只生成字幕文件（.srt / .json），不会在 AE 里建图层。
+      不自动落轨：识别完成后会停在校对页，你核对（改）完文字、点「确认并落轨」才会建层。
     </div>
 
     <div class="progress"><div id="bar"></div></div>
     <div id="status" class="status">就绪</div>
 
     <!-- 结果摘要：跑完才有内容。新组件 statgrid（统计）+ chips（产物直达） -->
-    <section class="card" id="resultCard" style="display:none">
+    </div>
+
+    <div class="grp" data-g="check">
+      <section class="card">
+        <div class="card-title"><span>文字校对</span></div>
+        <div class="cstats">
+          <div class="c"><b id="statSent2">0</b><span>条字幕</span></div>
+          <div class="c warn"><b id="statEdited">0</b><span>条已改</span></div>
+          <div class="c"><b id="statLow">0</b><span>条低置信</span></div>
+        </div>
+        <div class="hint" style="margin-top:6px">橙线 = 改过的，黄框 = 识别置信度低的。
+          逐条核对，改完再落轨，省得回时间线一层层返工。</div>
+      </section>
+
+      <section class="card">
+        <div class="card-title"><span>识别结果</span></div>
+        <div id="checkList" class="clist"></div>
+        <div id="checkEmpty" class="empty">还没有识别结果。<br>先点「生成字幕」跑一次，结果会停在这里等你核对。</div>
+      </section>
+
+      <section class="card">
+        <div class="actions fill">
+          <button id="btnCommit" class="small primary">确认并落轨</button>
+          <button id="btnRedo" class="ghost small">重新识别一遍</button>
+        </div>
+        <div class="hint" style="margin-top:6px">确认之前，AE 时间线上不会有任何改动。</div>
+      </section>
+    </div>
+
+    <div class="grp" data-g="out">
+  <section class="card" id="resultCard" style="display:none">
       <div class="card-title">
         <span>本次结果</span>
         <button id="btnOpenOut" class="ghost small">打开目录</button>
@@ -136,14 +162,16 @@
   <!-- ============================================================
        二级 · 人声分离（独立菜单）
        ============================================================ -->
-  <div class="page" id="pageUvr">
+    </div>
+  </div>
 
-    <header class="sub">
-      <button class="icon" data-home="1" title="返回">←</button>
-      <h1>人声分离</h1>
-      <span id="uvrBadge" class="badge" style="margin-left:auto">关</span>
-    </header>
+<div class="page" id="pageUvr">
 
+    <div class="pgstat"><span id="uvrBadge" class="badge">关</span></div>
+
+    <nav class="lv2"><button data-g="cfg" class="on">分离设置</button><button data-g="env">运行环境</button></nav>
+
+    <div class="grp on" data-g="cfg">
     <section class="card">
       <label class="chk" style="margin-top:0">
         <input type="checkbox" id="uvrOn" checked> 识别前先分离人声
@@ -190,7 +218,9 @@
         <label class="chk"><input type="checkbox" id="uvrKeep"> 保留分离后的人声文件（默认处理完删除）</label>
       </div>
     </section>
+    </div>
 
+    <div class="grp" data-g="env">
     <section class="card">
       <div class="card-title">
         <span>本地依赖</span>
@@ -221,31 +251,18 @@
         速度取决于 CPU：约 0.3~1× 实时，10 分钟素材大概要 10~30 分钟；有独立显卡会快很多。
         模型在首次使用该模型时自动下载（约 60~300 MB/个）。</div>
     </section>
-
-    <section class="card">
-      <div class="card-title"><span>字幕动画</span></div>
-      <label class="chk" style="margin-top:0">
-        <input type="checkbox" id="skipPresetShort" checked> 短句不加动画预设
-      </label>
-      <div class="hint">句子短于 <b>0.6 秒</b>、又比预设动画本身还短时，套上预设只会一闪而过、或只演半个动画。
-        勾选后这类短句<b>完全不套预设</b>，直接静止显示到句尾 ——
-        图层里也不会留下多余的关键帧与动画器，后期改起来干净。</div>
-      <div class="hint">不勾则维持原样：把整段动画压缩进这一句，尽量演完整。</div>
-    </section>
+    </div>
 
     <div class="footnote">开启后的流程：AE 导出音频 → 本地分离人声 → 只把人声送云端识别。</div>
   </div>
 
   <!-- ============================================================
        二级 · 字幕样式（独立菜单）
-       ============================================================ -->
-  <div class="page" id="pageStyle">
+       ============================================================ --><div class="page" id="pageStyle">
 
-    <header class="sub">
-      <button class="icon" data-home="1" title="返回">←</button>
-      <h1>字幕样式</h1>
-    </header>
+    <nav class="lv2"><button data-g="text" class="on">切分与文本</button><button data-g="look">外观与动画</button><button data-g="pos">位置与排版</button><button data-g="fix">检查与修复</button></nav>
 
+    <div class="grp on" data-g="text">
     <section class="card">
       <div class="row" style="margin-top:0"><label>排布</label>
         <select id="mode">
@@ -292,7 +309,19 @@
       <div class="hint">勾选后<b>要重新生成一次字幕才生效</b>——已经生成的字幕不会自动更新。
         数字里的小数点（3.14）与千分位（1,000）会被保留，不会误删。</div>
     </section>
+    </div>
 
+    <section class="card">
+      <div class="card-title"><span>切分与文本</span></div>
+      <div class="row" style="margin-top:0"><label>每行字数</label>
+        <input type="number" id="maxChars" value="16" min="6" max="40"></div>
+      <label class="chk"><input type="checkbox" id="dropSuspect"> 丢弃疑似误识别段（默认只标记不删）</label>
+      <label class="chk"><input type="checkbox" id="snapSpeech" checked> 按真实语音时长校正每句时间</label>
+      <div class="hint" style="margin-top:2px">识别后会对音频做一次静音检测（用自带 ffmpeg，不额外上传），
+        把每句起止校正到真实说话区间 —— 解决"说话没完字幕就没了 / 字幕还在但话已说完"。
+        只做小幅校正（±0.8 秒内、不短于 0.35 秒、不与相邻句重叠）。</div>
+    </section>
+    <div class="grp" data-g="look">
     <section class="card">
       <div class="card-title"><span>文字动画预设</span></div>
       <div class="row" style="margin-top:0"><label>搜索</label>
@@ -313,7 +342,56 @@
         个别预设若改写了图层位置，落点会由预设决定，面板就不再强制居中。
       </div>
     </section>
+    </div>
 
+    <section class="card">
+      <div class="card-title"><span>字幕动画</span></div>
+      <label class="chk" style="margin-top:0">
+        <input type="checkbox" id="skipPresetShort" checked> 短句不加动画预设
+      </label>
+      <div class="hint">句子短于 <b>0.6 秒</b>、又比预设动画本身还短时，套上预设只会一闪而过、或只演半个动画。
+        勾选后这类短句<b>完全不套预设</b>，直接静止显示到句尾 ——
+        图层里也不会留下多余的关键帧与动画器，后期改起来干净。</div>
+      <div class="hint">不勾则维持原样：把整段动画压缩进这一句，尽量演完整。</div>
+    </section>
+    <div class="grp" data-g="pos">
+      <section class="card">
+        <div class="card-title"><span>字幕位置</span></div>
+        <div class="alignwrap">
+          <div class="grid9" id="posGrid">
+            <button data-pos="tl" title="左上"></button><button data-pos="tc" title="上中"></button><button data-pos="tr" title="右上"></button>
+            <button data-pos="ml" title="左中"></button><button data-pos="mc" title="正中"></button><button data-pos="mr" title="右中"></button>
+            <button data-pos="bl" title="左下"></button><button data-pos="bc" class="on" title="下中"></button><button data-pos="br" title="右下"></button>
+          </div>
+          <div class="alignhint">
+            <b id="posName">下居中</b>
+            <span>默认位置。避开画面主体，横屏混剪最常用的一种。</span>
+          </div>
+        </div>
+        <div class="hint">位置会写进每个字幕图层的锚点，之后在 AE 里手动挪动也不会打架。</div>
+      </section>
+
+      <section class="card">
+        <div class="card-title"><span>微调与边距</span></div>
+        <div class="triple">
+          <div><label>水平</label><input type="number" id="posX" value="0"></div>
+          <div><label>垂直</label><input type="number" id="posY" value="0"></div>
+          <div><label>边距</label><input type="number" id="safeArea" value="10"><span class="u">%</span></div>
+        </div>
+        <div class="hint">偏移按像素（正数向右 / 向下）；边距按画面短边算，竖屏横屏都不贴边。</div>
+      </section>
+
+      <section class="card">
+        <div class="card-title"><span>折行</span></div>
+        <div class="duo">
+          <div><label>行距</label><input type="number" id="lineHeight" value="1.2" step="0.1" min="0.8" max="3"></div>
+          <div><label>最大行数</label><input type="number" id="maxLines" value="2" min="1" max="5"></div>
+        </div>
+        <div class="hint">一句话太长要折行时，用这两个值控制它占几行、行与行之间留多少。</div>
+      </section>
+    </div>
+
+    <div class="grp" data-g="fix">
     <section class="card">
       <div class="card-title"><span>字幕体检</span></div>
       <div class="hint" style="margin-top:0">
@@ -330,34 +408,22 @@
         它会把这些图层的关键帧整体搬回各自的时间范围（只动明显错位的层，进撤销栈，Ctrl+Z 可撤回）。</div>
       <div id="subCheckOut"></div>
     </section>
+    </div>
 
   </div>
 
   <!-- ============================================================
        二级 · 设置（其余三组）
+       ============================================================ -->  <!-- ============================================================
+       一级 · 模型与引擎（换引擎、下模型、填密钥）
        ============================================================ -->
-  <div class="page" id="pageSet">
+  <div class="page" id="pageEng">
 
-    <header class="sub">
-      <button class="icon" data-home="1" title="返回">←</button>
-      <h1>设置</h1>
-      <span class="badge" style="margin-left:auto">3 组</span>
-    </header>
-    <div class="hint" style="margin-top:0">改动即时保存，关掉面板也不会丢。</div>
+    <nav class="lv2"><button data-g="asr" class="on">识别引擎</button><button data-g="local">本地模型</button></nav>
 
+    <div class="grp on" data-g="asr">
     <section class="card">
-      <div class="card-title"><span>识别选项</span></div>
-      <div class="row" style="margin-top:0"><label>每行字数</label>
-        <input type="number" id="maxChars" value="16" min="6" max="40"></div>
-      <label class="chk"><input type="checkbox" id="dropSuspect"> 丢弃疑似误识别段（默认只标记不删）</label>
-      <label class="chk"><input type="checkbox" id="snapSpeech" checked> 按真实语音时长校正每句时间</label>
-      <div class="hint" style="margin-top:2px">识别后会对音频做一次静音检测（用自带 ffmpeg，不额外上传），
-        把每句起止校正到真实说话区间 —— 解决"说话没完字幕就没了 / 字幕还在但话已说完"。
-        只做小幅校正（±0.8 秒内、不短于 0.35 秒、不与相邻句重叠）。</div>
-      <label class="chk"><input type="checkbox" id="limitOn" checked> 限制单次处理时长</label>
-      <div class="row"><label>上限</label>
-        <input type="number" id="limitMin" value="10" min="1" max="120">
-        <span class="hint" style="margin:0;flex:0 0 auto">分钟</span></div>
+      <div class="card-title"><span>识别引擎</span></div>
       <div class="row"><label>引擎</label>
         <select id="asrProfile">
             <option value="siliconflow">加载中…</option>
@@ -389,7 +455,7 @@
         <button id="btnAsrTest" class="ghost small">测试密钥</button>
         <button id="btnAsrConsole" class="ghost small">去申请密钥</button></div>
 
-      <details>
+      <details id="asrAdvBox">
         <summary class="hint" style="cursor:pointer">高级（模型 / 服务地址 / 提示词）</summary>
         <div class="row"><label>模型</label>
           <input type="text" id="asrModel" placeholder="留空用该引擎的默认模型">
@@ -410,13 +476,67 @@
           允许按静音切块识别（免费引擎不返回时间戳时，靠它重建时间轴）</label>
       </details>
 
+      <!-- 本地版本（离线识别）· 选中「本地 Whisper」这一档才展开
+           权重不随包分发（合规 + 体积），放在数据目录的 models/whisper 下 -->
+      <div id="asrLocalBlock" style="display:none">
+        <div class="row" style="margin-top:0"><label>模型</label>
+          <select id="localModel" title="越大越准也越慢；medium 是中文的甜点档"></select>
+        </div>
+        <div class="row"><label>运行时</label>
+          <select id="localRuntime" title="whisper.cpp 的二进制版本。CUDA 版在 N 卡上快十几倍，但约 429 MB；本机到 GitHub 的实测速度只有几十 KB/s，可能要 1~3 小时（支持断点续传，可以挂着慢慢下）">
+            <option value="blas">CPU · BLAS（约 16 MB · 建议先装这个）</option>
+            <option value="cuda">CUDA 12.4（约 429 MB · N 卡更快，下载慢）</option>
+            <option value="cpu">CPU · 纯（约 3.6 MB · 最慢，仅试跑）</option>
+          </select>
+        </div>
+        <div class="hint" id="localModelHint">正在检测本机环境…</div>
+        <div class="envgrid" id="envGridLocal">
+          <div class="er" id="lgExe"><span class="dot"></span>whisper.cpp<b>检测中…</b></div>
+          <div class="er" id="lgModel"><span class="dot"></span>模型<b>检测中…</b></div>
+          <div class="er" id="lgGpu"><span class="dot"></span>GPU 加速<b>检测中…</b></div>
+          <div class="er" id="lgOffline"><span class="dot"></span>离线可用<b>断网也能跑</b></div>
+        </div>
+        <div class="actions fill" style="margin-top:9px">
+          <button id="btnLocalModel" class="small">下载模型</button>
+          <button id="btnLocalDir" class="ghost small" title="打开模型所在目录">打开模型目录</button>
+          <button id="btnCleanLocal" class="ghost small"
+            title="把已下载的本地权重删到回收站（二进制不动 —— 它才十几 MB，删了还得重下）">清理模型</button>
+        </div>
+        <label class="chk" style="margin-top:6px"><input type="checkbox" id="localGpu" checked>
+          用显卡跑（NVIDIA 会快十几倍；关掉改走 CPU，慢但不占显存）</label>
+        <div class="hint">本地识别<strong>不上传任何音频</strong> —— 隐私最好、断网也能用。
+          代价：模型要占磁盘（Medium 约 1.5 GB）；纯 CPU 跑 10 分钟素材大约要十几到几十分钟。</div>
+      </div>
+
       <div class="hint" id="asrQuota">免费档：不收费不限量（以服务商页面口径为准，可能调整）</div>
       <div class="hint">「测试密钥」会顺带向服务商拉取<strong>当前可用的模型清单</strong>，填进上面「挑一个」里
         —— 免费模型各家都在变，实时问它比写死一份清单准。</div>
-      <div class="hint">密钥只存在本机面板存档里（<span class="mono">明文</span>），不会发给除所选服务商以外的任何方。
+      <div class="hint" id="asrKeyNote">密钥只存在本机面板存档里（<span class="mono">明文</span>），不会发给除所选服务商以外的任何方。
         不想填面板也可以改用环境变量 <span class="mono">AESUB_API_KEY</span>。</div>
     </section>
+    </section>
+    </div>
 
+    <div class="grp" data-g="local">
+      <div class="hint" style="margin-top:0">本地模型的档位、运行时与显卡开关都在「识别引擎」这一组里（选中「本地 Whisper」档才展开）。
+        这里放已下载内容的管理与清理。</div>
+      <section class="card">
+        <div class="card-title"><span>本地模型管理</span></div>
+        <div class="actions fill" style="margin-top:0">
+          <button id="btnLocalModelGo" class="small">下载 / 切换本地模型</button>
+          <button id="btnLocalDirGo" class="ghost small">打开模型目录</button>
+        </div>
+        <div id="engLocalNote" class="hint">权重文件不随分发包提供，需要时在面板里点下载（支持断点续传）。</div>
+      </section>
+    </div>
+
+  </div>
+
+<div class="page" id="pageSet">
+
+    <nav class="lv2"><button data-g="path" class="on">输出与路径</button><button data-g="diag">环境诊断</button><button data-g="gen">通用</button></nav>
+
+    <div class="grp" data-g="path">
     <section class="card">
       <div class="card-title"><span>输出与日志</span></div>
       <div class="row" style="margin-top:0"><label>输出目录</label>
@@ -431,7 +551,16 @@
       <div class="hint">「试导出」只导出音频、不上传云端（零成本验证导出环节）；
         「用已有字幕建图层」直接拿输出目录里同名的 <span class="mono">.json</span> 建图层，不重新识别。</div>
     </section>
+    </div>
 
+    <section class="card">
+      <div class="card-title"><span>处理时长</span></div>
+      <label class="chk"><input type="checkbox" id="limitOn" checked> 限制单次处理时长</label>
+      <div class="row"><label>上限</label>
+        <input type="number" id="limitMin" value="10" min="1" max="120">
+        <span class="hint" style="margin:0;flex:0 0 auto">分钟</span></div>
+    </section>
+    <div class="grp" data-g="diag">
     <section class="card">
       <div class="card-title"><span>环境与诊断</span></div>
       <!-- 新组件 · 环境状态网格（P5：四格圆点，一眼判就绪） -->
@@ -457,17 +586,16 @@
       <div class="hint">「跑自检」会安全地验证字体检索、时间范围探测、字幕居中。
         不导入素材、不新建合成，临时文本图层量完即删。</div>
     </section>
+    </div>
 
     <div class="about">
-      Noniika v0.9.1 · 基础版<br>
+      Noniika v1.0.0 · 基础版<br>
       作者：𝙁𝙖𝙙𝙚
     </div>
 
   </div>
 
-</div>
-
-<!-- 运行时询问弹层：分离出的人声怎么落轨（仅在源素材是纯音频时出现）
+</div><!-- 运行时询问弹层：分离出的人声怎么落轨（仅在源素材是纯音频时出现）
      弹窗按钮顺序：推荐（primary）→ 替代（ghost）→ 取消（最右）（§3.6 原则 4） -->
 <div id="askOverlay" class="overlay" style="display:none">
   <div class="askBox">
@@ -482,36 +610,34 @@
   </div>
 </div>
 
-<!-- 通用二级确认（清理类操作专用）：清单里的每组都可勾选，确认前你看到的就是将被删的东西 -->
+<!-- 通用二级确认（清理类操作专用）
+     ⚠ v0.9.2 修正：旧版的 </div> 位置错了 —— .askBox 提前闭合，导致「彻底删除」勾选框与
+       「确认清理 / 取消」按钮跑到弹窗框外面；另外那 4 行静态清单是设计占位、又不在 #cfmBody 里，
+       而 JS 还会往 #cfmBody 再填一份真清单，于是真机上会同时出现两套清单。
+       现在：清单只由 JS 填进 #cfmBody，按钮与说明都在框内。 -->
 <div id="cfmOverlay" class="overlay" style="display:none">
   <div class="askBox wide">
     <div class="askTitle" id="cfmTitle">确认清理插件文件</div>
-    <div class="askBody" id="cfmBody"></div>
-      <div class="cleanGroup">
-        <input type="checkbox" checked>
-        <span class="cgBody"><span class="cgName">人声分离产物</span><span class="cgSize">48.6 MB</span>
-          <span class="cgNote">输出目录\_人声分离\ —— 删后「复用已有人声」不可用，需重新分离</span></span>
-      </div>
-      <div class="cleanGroup">
-        <input type="checkbox" checked>
-        <span class="cgBody"><span class="cgName">临时文件</span><span class="cgSize">1.1 MB</span>
-          <span class="cgNote">系统临时目录里本插件产生的文件（aesub-* 等）</span></span>
-      </div>
-      <div class="cleanGroup">
-        <input type="checkbox">
-        <span class="cgBody"><span class="cgName">字幕成品文件</span><span class="cgSize">0.2 MB</span>
-          <span class="cgNote">输出目录里的 .srt / .json / .txt —— 删掉后「用已有字幕建图层」需要重新识别（默认不勾）</span></span>
-      </div>
-      <div class="cleanGroup locked">
-        <input type="checkbox" disabled>
-        <span class="cgBody"><span class="cgName">分离模型</span><span class="cgSize">934.5 MB</span>
-          <span class="cgNote">不在这里清理 —— 模型有独立的「清理模型」按钮（人声分离页）</span></span>
-      </div>
-      <div class="cleanTotal">将删除 3 组 · 共 52.0 MB<span class="cleanSub">（全部走回收站，可还原）</span></div>
+
+    <!-- 概览：将要删多少，摆在最上面，不用滚到底才知道 -->
+    <div class="cfmHead">
+      <span class="chMain">将清理 <b id="cfmCount">0</b> 项 · 预计释放 <b id="cfmSize">0 B</b></span>
+      <span class="chSub">全部走回收站，可还原</span>
     </div>
+
+    <div class="cfmTools">
+      <button class="ghost tiny" id="cfmAll">全选</button>
+      <button class="ghost tiny" id="cfmNone">全不选</button>
+      <span class="spacer"></span>
+      <span class="cfmTip">点任意一行即可勾选</span>
+    </div>
+
+    <div class="askBody" id="cfmBody"></div>
+
     <label class="chk" id="cfmPermWrap" style="display:none">
       <input type="checkbox" id="cfmPerm"> 放不进回收站的项改为彻底删除（不可恢复）
     </label>
+
     <div class="askBtns">
       <button id="cfmOk" class="primary small">确认清理</button>
       <button id="cfmCancel" class="ghost small">取消</button>
@@ -542,3 +668,25 @@
 <script src="js/main.js"></script>
 </body>
 </html>
+    <div class="grp" data-g="gen">
+      <section class="card">
+        <div class="card-title"><span>维护</span></div>
+    <div class="actions fill maint">
+      <button id="btnFreeMem" class="ghost small" title="把各程序占着不用的内存还给系统。不结束任何进程，也会跳过 AE 本身">
+        <svg class="ico" viewBox="0 0 16 16" aria-hidden="true"><path d="M8 1.6c2.1 2.1 3.1 4.3 3.1 6.6 0 .5-.05 1-.15 1.5H5.05c-.1-.5-.15-1-.15-1.5C4.9 5.9 5.9 3.7 8 1.6z"/><circle cx="8" cy="6.1" r="1.15"/><path d="M5.1 6.9 2.9 9.2v2.4l2.2-1.2M10.9 6.9l2.2 2.3v2.4l-2.2-1.2M7.1 11.4c.25 1.6.55 2.4 1 2.4h-.2c.45 0 .75-.8 1-2.4"/></svg>
+        清理内存</button>
+      <button id="btnCleanFiles" class="ghost small" title="清理插件产生的中间音频、人声分离产物、临时文件。删到回收站，可还原">
+        <svg class="ico" viewBox="0 0 16 16" aria-hidden="true"><path d="M2.6 4.4h10.8"/><path d="M6.1 4.4V2.9h3.8v1.5"/><path d="M3.9 4.4l.72 8.6c.05.62.57 1.1 1.19 1.1h4.38c.62 0 1.14-.48 1.19-1.1l.72-8.6"/><path d="M6.7 6.9v4.4M9.3 6.9v4.4"/></svg>
+        清理插件文件</button>
+    </div>
+    <div id="maintOut" class="hint" style="margin-top:6px"></div>
+      </section>
+      <section class="card">
+        <div class="card-title"><span>恢复默认</span></div>
+        <div class="hint" style="margin-top:0">把面板上的设置恢复成出厂状态。不会删除已下载的模型与分离环境。</div>
+        <div class="actions fill" style="margin-top:8px">
+          <button id="btnResetGo" class="ghost small">恢复默认设置</button>
+        </div>
+      </section>
+    </div>
+

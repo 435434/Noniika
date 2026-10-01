@@ -21,6 +21,14 @@ __pycache__/
 # 需要它请从 Releases 下载成品包
 pipeline/vendor/ffmpeg/
 
+# 本地 whisper.cpp 运行时（约 676 MB；其中 cublasLt64_12.dll 单个 451 MB，
+# 远超 GitHub 单文件 100 MB 上限）—— 由「模型与引擎 › 本地模型」一键下载，
+# 不随仓库分发
+whisper.cpp/
+
+# 交接文档（含本机绝对路径、面板内部细节与自用版说明，只作本机交接，不分发）
+交接文档.md
+
 # 测试素材与临时产物
 test/input/
 test/output/
@@ -28,8 +36,16 @@ test/output/
 # 本地开发痕迹（含本机路径与工作日志）
 .workbuddy/
 
+# ⚠ 自用补丁（剪映适配器 + 装配脚本）—— 带 GPL-3.0 依赖与逆向接口，
+#   只用于本机自用版，绝不进仓库、绝不进分发包
+自用补丁/
+
 # 系统杂物
 Thumbs.db
 desktop.ini
 .DS_Store
 *.log
+
+# 设计历史稿与自用版设计（早期基于已移除的剪映引擎 / 自用版专属）
+# 只留本机存档，不进仓库、不分发
+design/_archive/

@@ -1,0 +1,934 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>Noniika · 新版 UI 信息架构原型</title>
+<style>
+  /* ===== 页面外壳（浏览器预览用，不进插件）===== */
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; padding: 24px;
+    background: #17181a; color: #cfd2d6;
+    font: 13px/1.65 "Segoe UI", "Microsoft YaHei", system-ui, sans-serif;
+  }
+  .stage { display: flex; gap: 26px; align-items: flex-start; justify-content: center; flex-wrap: wrap; }
+
+  /* ===== 插件配色（照 cep/css/style.css 的变量）===== */
+  .panel {
+    --bg: #232323; --panel: #2b2b2b; --panel2: #343434; --line: #3d3d3d;
+    --fg: #d8d8d8; --fg-dim: #9c9c9c; --fg-hint: #7e7e7e;
+    --accent: #4a9eff; --accent-d: #3f83d6; --accent-l: #6fb6ff;
+    --ok: #7ddba3; --warn: #f0c869; --err: #f09a9a;
+    /* 圆角体系：三档，不混用 */
+    --r-lg: 10px;   /* 卡片 */
+    --r-md: 7px;    /* 按钮 / 输入框 / 步骤块 */
+    --r-pill: 999px;/* 芯片 / 进度条 */
+    /* 渐变：只用在这几处，别到处刷 */
+    --g-top:    linear-gradient(180deg, #343434 0%, #272727 100%);
+    --g-card:   linear-gradient(180deg, #2f2f2f 0%, #292929 100%);
+    --g-inset:  linear-gradient(180deg, #1f1f1f 0%, #232323 100%);
+    --g-btn:    linear-gradient(180deg, #3d3d3d 0%, #313131 100%);
+    --g-accent: linear-gradient(180deg, #5aa9ff 0%, #3f83d6 100%);
+    --g-sel:    linear-gradient(180deg, #354c66 0%, #2b3d52 100%);
+    --g-bar:    linear-gradient(90deg, #4a9eff 0%, #6ee0c4 100%);
+    color-scheme: dark;
+    /* ⚠ flex: none 不能少：否则作为 flex 子项会被容器压缩，
+       面板一窄，一级导航最后一个标签就被挤没了 */
+    flex: none; width: 380px;
+    background: var(--bg); color: var(--fg);
+    border: 1px solid #0e0e0e; border-radius: 8px; overflow: hidden;
+    box-shadow: 0 10px 40px rgba(0,0,0,.5);
+    font-size: 12px;
+  }
+  .devbar {
+    background: #101112; color: #7b8085; font-size: 11px;
+    padding: 5px 12px; display: flex; justify-content: space-between;
+    border-bottom: 1px solid #000;
+  }
+  .devbar b { color: #9aa0a6; font-weight: 500; }
+
+  /* ===== 顶栏 ===== */
+  .topbar {
+    display: flex; align-items: center; gap: 8px;
+    padding: 9px 12px; background: var(--g-top);
+    border-bottom: 1px solid #1d1d1d;
+    box-shadow: 0 1px 0 rgba(255,255,255,.03) inset;
+  }
+  .brand { font-size: 15px; font-weight: 500; color: #f0f0f0; letter-spacing: .5px; }
+  .ver { font-size: 10px; color: var(--fg-hint); border: 1px solid var(--line);
+        border-radius: var(--r-pill); padding: 1px 7px; background: var(--g-inset); }
+  .topbar .right { margin-left: auto; display: flex; gap: 6px; }
+  .ibtn {
+    width: 25px; height: 25px; display: grid; place-items: center;
+    border: 1px solid #474747; border-radius: var(--r-md);
+    background: var(--g-btn); color: var(--fg-dim); cursor: pointer; font-size: 12px;
+    box-shadow: 0 1px 0 rgba(255,255,255,.05) inset;
+  }
+  .ibtn:hover { color: #fff; border-color: #5c5c5c; }
+  .ibtn.heart { color: #e57a9b; }
+
+  /* ===== 一级导航 ===== */
+  .lv1 {
+    display: grid; grid-template-columns: repeat(5, 1fr);
+    gap: 4px; padding: 7px 8px; background: var(--g-top);
+    border-bottom: 1px solid #1d1d1d;
+  }
+  .lv1 button {
+    min-width: 0; padding: 7px 2px;
+    background: none; border: 1px solid transparent; border-radius: var(--r-md);
+    color: var(--fg-dim); font: inherit; font-size: 11.5px;
+    cursor: pointer; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .lv1 button:hover { color: var(--fg); background: rgba(255,255,255,.045); }
+  /* 选中 = 深蓝渐变胶囊 + 亮蓝字，是全站唯一的"彩色底" */
+  .lv1 button.on {
+    color: #9ecbff; background: var(--g-sel);
+    border-color: #3f5f82;
+    box-shadow: 0 1px 0 rgba(255,255,255,.06) inset, 0 1px 3px rgba(0,0,0,.32);
+  }
+
+  /* ===== 二级导航（分段，常显不折叠）===== */
+  .lv2wrap { padding: 9px 12px 0; }
+  .lv2 {
+    display: grid; grid-auto-flow: column; grid-auto-columns: 1fr;
+    gap: 3px; background: var(--g-inset);
+    border: 1px solid #333; border-radius: var(--r-lg); padding: 3px;
+  }
+  .lv2 button {
+    min-width: 0; padding: 6px 3px;
+    background: none; border: 1px solid transparent; border-radius: var(--r-md);
+    color: var(--fg-dim); font: inherit; font-size: 11px;
+    cursor: pointer; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .lv2 button:hover { color: var(--fg); }
+  .lv2 button.on {
+    background: var(--g-btn); color: #fff; border-color: #4e4e4e;
+    box-shadow: 0 1px 0 rgba(255,255,255,.07) inset, 0 2px 5px rgba(0,0,0,.3);
+  }
+
+  /* ===== 内容区 ===== */
+  main { padding: 10px 12px 14px; min-height: 430px; }
+  .grp { display: none; flex-direction: column; gap: 8px; }
+  .grp.on { display: flex; }
+
+  .card {
+    background: var(--g-card); border: 1px solid #383838;
+    border-radius: var(--r-lg); padding: 9px 10px;
+    box-shadow: 0 1px 0 rgba(255,255,255,.035) inset, 0 1px 2px rgba(0,0,0,.22);
+  }
+  .card > h3 {
+    margin: 0 0 7px; font-size: 11px; font-weight: 600; color: var(--fg-dim);
+    letter-spacing: .4px; text-transform: none;
+    display: flex; align-items: center; gap: 6px;
+  }
+  .card > h3::before {
+    content: ""; flex: none; width: 3px; height: 11px; border-radius: var(--r-pill);
+    background: var(--g-accent); opacity: .85;
+  }
+  .row { display: flex; align-items: center; gap: 6px; margin-bottom: 6px; }
+  .row:last-child { margin-bottom: 0; }
+  .row > label { min-width: 52px; color: var(--fg-dim); font-size: 11px; flex: none; }
+  .row .fld { flex: 1; min-width: 0; }
+  .ctl {
+    width: 100%; padding: 5px 8px; background: var(--g-inset); color: var(--fg);
+    border: 1px solid #404040; border-radius: var(--r-md); font-size: 11.5px;
+    font-family: inherit;
+  }
+  .ctl:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 2px rgba(74,158,255,.16); }
+  .ctl::placeholder { color: #666; }
+  .chk { display: flex; align-items: center; gap: 6px; font-size: 11.5px; color: var(--fg); margin: 5px 0 0; }
+  .chk input { accent-color: var(--accent); }
+  .hint { font-size: 10.5px; color: var(--fg-hint); margin: 5px 0 0; line-height: 1.45; }
+
+  button.btn {
+    padding: 5px 11px; background: var(--g-btn); color: var(--fg);
+    border: 1px solid #474747; border-radius: var(--r-md);
+    font: inherit; font-size: 11px; cursor: pointer; white-space: nowrap;
+    box-shadow: 0 1px 0 rgba(255,255,255,.05) inset;
+    transition: border-color .12s, color .12s;
+  }
+  button.btn:hover { border-color: #5c5c5c; color: #fff; }
+  button.btn.primary {
+    background: var(--g-accent); border-color: #2f6fbd; color: #fff; font-weight: 500;
+    box-shadow: 0 1px 0 rgba(255,255,255,.22) inset, 0 2px 6px rgba(47,111,189,.35);
+  }
+  button.btn.primary:hover { border-color: #4a90e2; }
+  button.btn.ghost { background: rgba(255,255,255,.025); }
+  /* 按钮组：优先一行排下，排不下才折（3 个按钮在 380px 下放得下）*/
+  .btns { display: flex; gap: 6px; flex-wrap: nowrap; }
+  .btns button { flex: 0 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+
+  .mainact { display: flex; gap: 7px; margin: 2px 0 0; }
+  .mainact button { flex: 1; padding: 9px 4px; font-size: 12.5px; }
+  .mainact .big2 { flex: 0 0 40%; font-size: 11.5px; }
+
+  .status {
+    display: flex; align-items: center; gap: 7px; flex-wrap: nowrap;
+    background: var(--g-inset); border: 1px solid #383838; border-radius: var(--r-lg);
+    padding: 7px 9px; font-size: 11px;
+  }
+  .dot {
+    width: 7px; height: 7px; border-radius: 50%; background: var(--ok); flex: none;
+    box-shadow: 0 0 6px rgba(125,219,163,.65);
+  }
+  .status .k { color: var(--fg-hint); }
+  .status .v { color: var(--fg); }
+  .status .grow { margin-left: auto; }
+
+  .chips { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 6px; }
+  .chip {
+    padding: 4px 11px; border: 1px solid #474747; border-radius: var(--r-pill);
+    background: var(--g-btn); color: var(--fg); font-size: 11px; cursor: pointer;
+    box-shadow: 0 1px 0 rgba(255,255,255,.05) inset;
+  }
+  .chip:hover { border-color: var(--accent); color: #fff; background: var(--g-sel); }
+
+  .logbox {
+    background: #191919; border: 1px solid var(--line); border-radius: 4px;
+    padding: 7px 8px; height: 132px; overflow: auto;
+    font: 10.5px/1.6 Consolas, "Courier New", monospace; color: #9aa0a6;
+  }
+  .logbox .ok { color: var(--ok); }
+  .logbox .wn { color: var(--warn); }
+  .logbox .dm { color: #6b7075; }
+
+
+  /* h3 里的小字副标 */
+  .sub-t { font-weight: 400; color: var(--fg-hint); }
+
+  /* 分步进度（对应 09-27 设计上下文 P3：不能只给百分比）
+     5 步用等分网格，天然对称 */
+  .steps5 {
+    display: grid; grid-template-columns: repeat(5, 1fr);
+    gap: 3px; margin-bottom: 6px;
+  }
+  .steps5 .step { padding: 5px 1px; font-size: 10px; }
+
+  /* 校对：统计条（三格等分，对称） */
+  .stats {
+    display: grid; grid-template-columns: repeat(3, 1fr);
+    gap: 6px; margin-bottom: 6px;
+  }
+  .stats span {
+    text-align: center; padding: 6px 2px; border-radius: var(--r-md);
+    background: var(--g-inset); border: 1px solid #383838;
+    font-size: 10.5px; color: var(--fg-dim);
+  }
+  .stats b { display: block; font-size: 15px; color: var(--fg); font-weight: 600; }
+  .stats .warn b { color: var(--warn); }
+
+  /* 校对：条目列表。时间码列定宽 + 文本列自适应 = 每行结构一致 */
+  .clist { display: flex; flex-direction: column; gap: 4px; max-height: 232px; overflow-y: auto; }
+  .cline {
+    display: grid; grid-template-columns: 34px 1fr; gap: 6px; align-items: center;
+    padding: 3px 5px 3px 3px; border-radius: var(--r-md); background: var(--g-inset);
+    border: 1px solid #333; border-left: 2px solid transparent;
+  }
+  .cline .t {
+    font: 10.5px/1 Consolas, monospace; color: var(--fg-hint);
+    text-align: center; padding-top: 2px;
+  }
+  .cline input { padding: 3px 6px; font-size: 11.5px; }
+  .cline.edited { border-left-color: var(--warn); }
+  .cline.low input { border-color: #6b5a33; }
+  .cline .lowdot {
+    position: absolute; right: 2px; top: 2px; width: 5px; height: 5px;
+    border-radius: 50%; background: var(--warn);
+  }
+
+  /* 成对按钮：等宽，对称 */
+  .pair { display: grid; grid-template-columns: 1fr 1fr; gap: 7px; }
+  .pair button { padding: 8px 4px; font-size: 12px; }
+  .pair3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
+  .pair3 > div { display: flex; align-items: center; gap: 4px; min-width: 0; }
+  .pair3 label { color: var(--fg-dim); font-size: 10.5px; flex: none; }
+
+  /* 成对字段：两列等宽 */
+  .pair2 { display: grid; grid-template-columns: 1fr 1fr; gap: 7px; }
+  .pair2 > div { display: flex; align-items: center; gap: 5px; }
+  .pair2 label { color: var(--fg-dim); font-size: 11px; flex: none; }
+
+  /* 九宫格对齐（3×3 完美对称） */
+  .alignwrap { display: grid; grid-template-columns: auto 1fr; gap: 10px; align-items: center; }
+  .grid9 {
+    display: grid; grid-template-columns: repeat(3, 32px);
+    grid-template-rows: repeat(3, 26px); gap: 3px;
+  }
+  .grid9 button {
+    border: 1px solid #404040; background: var(--g-inset);
+    border-radius: var(--r-md); cursor: pointer; padding: 0;
+  }
+  .grid9 button:hover { border-color: #5f5f5f; background: #2b2b2b; }
+  .grid9 button.on {
+    background: var(--g-accent); border-color: #2f6fbd;
+    box-shadow: 0 1px 0 rgba(255,255,255,.22) inset;
+  }
+  .alignhint b { display: block; color: var(--fg); font-size: 11.5px; margin-bottom: 2px; }
+  .alignhint span { color: var(--fg-hint); font-size: 10.5px; line-height: 1.5; }
+
+  /* 空状态（工具面板也需要，见技能 4.5） */
+  .empty {
+    border: 1px dashed #4a4a4a; border-radius: 5px; padding: 14px 10px;
+    text-align: center; color: var(--fg-hint); font-size: 11px; line-height: 1.6;
+  }
+
+  .step {
+    min-width: 0; text-align: center; padding: 5px 1px;
+    font-size: 10.5px; border-radius: 4px; background: #1e1e1e;
+    border: 1px solid var(--line); color: var(--fg-hint);
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .step.done {
+    color: #8fe0b4; border-color: #35604a;
+    background: linear-gradient(180deg, #23342b 0%, #1d2925 100%);
+  }
+  .step.cur {
+    color: #fff; border-color: #4a86c8;
+    background: linear-gradient(180deg, #3d6fa8 0%, #335d8f 100%);
+    box-shadow: 0 1px 0 rgba(255,255,255,.14) inset;
+  }
+  .bar { height: 5px; border-radius: var(--r-pill); background: #191919; overflow: hidden; }
+  .bar i { display: block; height: 100%; background: var(--g-bar); border-radius: var(--r-pill); }
+
+
+  /* 新搬家的控件：高亮，提示「这轮改过位置」 */
+  .moved { box-shadow: inset 2px 0 0 var(--warn); }
+
+  /* ===== 右侧说明 ===== */
+  .doc { flex: none; width: 430px; font-size: 12.5px; }
+  .doc h2 { font-size: 14px; margin: 0 0 4px; color: #eef1f4; font-weight: 600; }
+  .doc h4 { font-size: 12px; margin: 16px 0 6px; color: #8ab4f8; font-weight: 600; }
+  .doc p { margin: 0 0 8px; color: #a8adb3; line-height: 1.7; }
+  .doc ul { margin: 0 0 8px; padding-left: 18px; color: #a8adb3; }
+  .doc li { margin-bottom: 3px; line-height: 1.6; }
+  .doc code {
+    background: #26282b; border: 1px solid #34373b; border-radius: 3px;
+    padding: 0 4px; font: 11px Consolas, monospace; color: #d6d9dd;
+  }
+  .tree {
+    background: #1b1d20; border: 1px solid #2c2f33; border-radius: 6px;
+    padding: 10px 12px; font: 11.5px/1.75 Consolas, "Microsoft YaHei", monospace;
+    color: #b9bec4; white-space: pre; overflow-x: auto;
+  }
+  .tree b { color: #e8ebee; font-weight: 600; }
+  .tree i { color: #6f7479; font-style: normal; }
+  .legend { display: flex; gap: 14px; flex-wrap: wrap; font-size: 11px; color: #8b9096; margin-top: 8px; }
+  .legend span { display: flex; align-items: center; gap: 5px; }
+  .swatch { width: 10px; height: 10px; border-radius: 2px; display: inline-block; }
+  table.doc-t { width: 100%; border-collapse: collapse; font-size: 11.5px; margin: 4px 0 8px; }
+  table.doc-t th, table.doc-t td { border: 1px solid #2c2f33; padding: 4px 7px; text-align: left; }
+  table.doc-t th { background: #23262a; color: #9fb6d4; font-weight: 600; }
+  table.doc-t td { color: #a8adb3; }
+  table.doc-t td.bad { color: #f09a9a; }
+  table.doc-t td.good { color: #7ddba3; }
+
+  /* 落地对照表：默认收起，需要时展开 */
+  details.maplist { margin-bottom: 8px; }
+  details.maplist summary {
+    cursor: pointer; font-size: 11.5px; color: #8ab4f8;
+    padding: 5px 8px; border: 1px solid #2f3439; border-radius: 6px;
+    background: #1f2225; list-style: none;
+  }
+  details.maplist summary::-webkit-details-marker { display: none; }
+  details.maplist summary::before { content: "▸ "; color: #6f7479; }
+  details.maplist[open] summary::before { content: "▾ "; }
+</style>
+</head>
+<body>
+<div class="stage">
+
+  <!-- ============================ 左：面板原型 ============================ -->
+  <div class="panel">
+    <div class="devbar">
+      <span>AE 面板预览</span>
+      <span><b>380 px</b> 宽 · 窄屏可用</span>
+    </div>
+
+    <div class="topbar">
+      <span class="brand">𝙉𝙤𝙣𝙞𝙞𝙠𝙖</span>
+      <span class="ver">v1.0.0</span>
+      <div class="right">
+        <button class="ibtn heart" title="支持作者">♥</button>
+        <button class="ibtn" title="设置">⚙</button>
+      </div>
+    </div>
+
+    <!-- 一级导航：5 个，常显 -->
+    <nav class="lv1" id="lv1">
+      <button data-p="work" class="on">工作台</button>
+      <button data-p="sep">人声分离</button>
+      <button data-p="sub">字幕</button>
+      <button data-p="eng">模型与引擎</button>
+      <button data-p="set">设置</button>
+    </nav>
+
+    <!-- 二级导航：随一级变化，同样是横向分段（可见，不折叠） -->
+    <div class="lv2wrap">
+      <nav class="lv2" id="lv2"></nav>
+    </div>
+
+    <main id="main">
+
+      <!-- ============ ① 工作台 ============ -->
+      <div class="grp on" data-p="work" data-g="run">
+        <div class="status">
+          <span class="dot"></span>
+          <span class="k">引擎</span><span class="v">本地 Whisper · large-v3-turbo</span>
+          <span class="k">分离</span><span class="v" style="color:var(--ok)">已开</span>
+          <span class="grow"></span>
+          <button class="btn ghost" data-jump="eng">更换</button>
+        </div>
+
+        <div class="card">
+          <h3>运行进度 <span class="sub-t">跑任务时出现</span></h3>
+          <div class="steps5">
+            <span class="step done">导出音频</span>
+            <span class="step done">人声分离</span>
+            <span class="step done">识别</span>
+            <span class="step cur">校对</span>
+            <span class="step">写入图层</span>
+          </div>
+          <div class="bar"><i style="width:72%"></i></div>
+          <p class="hint">识别完<b>停在校对</b>，核对过文字才落轨。</p>
+        </div>
+
+        <div class="card">
+          <h3>本次任务</h3>
+          <div class="row">
+            <label>素材</label>
+            <div class="fld" style="color:var(--fg);font-size:11.5px">当前合成 · <span style="color:var(--fg-hint)">自动导出音频</span></div>
+            <button class="btn ghost">刷新</button>
+          </div>
+          <div class="mainact">
+            <button class="btn primary">生成字幕</button>
+            <button class="btn big2">只分离人声</button>
+          </div>
+          <label class="chk"><input type="checkbox" checked> 校对确认后自动在 AE 中建层
+            </label>
+          <p class="hint">取消则只产出文件，不在时间线建图层。</p>
+        </div>
+
+        <div class="card">
+          <h3>快捷入口</h3>
+          <div class="btns">
+            <button class="btn" data-jump="sep">人声分离设置</button>
+            <button class="btn" data-jump="sub">字幕样式</button>
+          </div>
+          <p class="hint">只做跳转，不复制控件。每个功能只有一个「家」。</p>
+        </div>
+      </div>
+
+      <div class="grp" data-p="work" data-g="check">
+        <div class="card">
+          <h3>文字校对 <span class="sub-t">识别完自动停在这里</span></h3>
+          <div class="stats">
+            <span><b>5</b>条字幕</span>
+            <span class="warn"><b>1</b>条已改</span>
+            <span><b>1</b>条低置信</span>
+          </div>
+          <p class="hint">橙线 = 已改，黄框 = 低置信。改完再落轨，不用回时间线返工。</p>
+        </div>
+
+        <div class="card">
+          <h3>识别结果</h3>
+          <div class="clist">
+            <div class="cline"><span class="t">0.8s</span><input class="ctl" value="同志们"></div>
+            <div class="cline"><span class="t">1.6s</span><input class="ctl" value="这几天我们孤军奋战"></div>
+            <div class="cline low"><span class="t">4.0s</span><input class="ctl" value="牺牲了很多战友"></div>
+            <div class="cline edited"><span class="t">5.9s</span><input class="ctl" value="面对死去的弟兄们"></div>
+            <div class="cline"><span class="t">7.8s</span><input class="ctl" value="我朱德心中有愧"></div>
+          </div>
+          <p class="hint">点时间码把指针跳到那句，对着画面听一遍再改。</p>
+        </div>
+
+        <div class="card">
+          <div class="pair">
+            <button class="btn primary">确认并落轨</button>
+            <button class="btn">重新识别</button>
+          </div>
+          <div class="empty" style="margin-top:8px">
+            还没识别结果时这里显示：<br>
+            「先点「生成字幕」跑一次，结果会停在这里等你核对。」
+          </div>
+        </div>
+      </div>
+
+      <div class="grp" data-p="work" data-g="out">
+        <div class="card">
+          <h3>本次产物</h3>
+          <div class="chips">
+            <span class="chip">字幕.srt</span>
+            <span class="chip">字幕.json</span>
+            <span class="chip">字幕.txt</span>
+            <span class="chip">打开目录</span>
+          </div>
+          <p class="hint">跑完自动出现在这里；点一下就用系统默认程序打开。</p>
+        </div>
+        <div class="card">
+          <h3>运行日志</h3>
+          <div class="logbox">
+<span class="dm">22:41:07</span> 导出音频 → 11.63 s / 16 kHz 单声道
+<span class="dm">22:41:09</span> 人声分离（Kim_Vocal_2）… <span class="ok">完成</span>
+<span class="dm">22:41:12</span> 识别中（低音区 · 逐词时间戳）
+<span class="dm">22:41:19</span> 静音检测：4 个讲话区间
+<span class="dm">22:41:19</span> 切分为 5 条字幕 <span class="ok">✓ 无丢字</span>
+<span class="dm">22:41:20</span> 写入 AE 图层 5 个 <span class="ok">✓</span>
+          </div>
+          <div class="btns" style="margin-top:7px">
+            <button class="btn ghost">复制日志</button>
+            <button class="btn ghost">清空</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- ============ ② 人声分离 ============ -->
+      <div class="grp" data-p="sep" data-g="cfg">
+        <div class="card">
+          <h3>分离开关</h3>
+          <label class="chk" style="margin-top:0"><input type="checkbox" checked> 识别前先分离人声
+            </label>
+          <p class="hint">带 BGM / 音效的素材必须开；纯人声访谈可关掉省时间。</p>
+        </div>
+        <div class="card">
+          <h3>分离参数</h3>
+          <div class="row"><label>输出到轨道</label><div class="fld"><select class="ctl"><option>新建独立轨道（混剪友好）</option><option>替换原音频</option></select></div></div>
+          <div class="row"><label>分离模型</label><div class="fld"><select class="ctl"><option>Kim_Vocal_2（推荐）</option><option>UVR-MDX-NET Inst HQ 3</option></select></div></div>
+          <div class="row"><label>输出格式</label><div class="fld"><select class="ctl"><option>WAV（无损）</option><option>MP3</option></select></div></div>
+          <label class="chk"><input type="checkbox"> 保留分离后的人声文件（默认处理完删除）
+            </label>
+        </div>
+      </div>
+
+      <div class="grp" data-p="sep" data-g="env">
+        <div class="card">
+          <h3>依赖状态</h3>
+          <div class="status" style="border:none;background:none;padding:0">
+            <span class="dot"></span><span class="v">Python 3.13 · audio-separator 已就绪</span>
+          </div>
+          <div class="btns" style="margin-top:7px">
+            <button class="btn ghost">检查依赖</button>
+            <button class="btn">一键安装环境</button>
+          </div>
+        </div>
+        <div class="card">
+          <h3>分离模型</h3>
+          <div class="btns">
+            <button class="btn">下载模型</button>
+            <button class="btn ghost">打开模型目录</button>
+            <button class="btn ghost">清理模型</button>
+          </div>
+          <p class="hint">只删模型文件，列表保留，下次用会自动重下。</p>
+        </div>
+        <div class="card">
+          <h3>运行环境</h3>
+          <label class="chk" style="margin-top:0"><input type="checkbox" checked> 使用 GPU 加速（关闭则走 CPU，很慢）
+            </label>
+          <div class="row" style="margin-top:7px"><label>Python</label>
+            <div class="fld"><input class="ctl" placeholder="留空自动探测（需 3.10~3.13）" value=""></div></div>
+          <p class="hint">面板「数据目录」需指向项目根，否则找不到模型。</p>
+        </div>
+      </div>
+
+      <!-- ============ ③ 字幕 ============ -->
+      <div class="grp" data-p="sub" data-g="text">
+        <div class="card">
+          <h3>怎么切句</h3>
+          <div class="row"><label>每条上限</label><div class="fld"><input class="ctl" type="number" value="16"></div>
+          </div>
+          <p class="hint">按「字重」折算：中文约 16 字，英文约 40 字符。</p>
+          <label class="chk"><input type="checkbox" checked> 按真实语音时长校正每句时间
+            </label>
+          <label class="chk"><input type="checkbox"> 丢弃疑似误识别段（默认只标记不删）
+            </label>
+        </div>
+        <div class="card">
+          <h3>文字处理</h3>
+          <label class="chk" style="margin-top:0"><input type="checkbox"> 去掉字幕里的标点符号
+            </label>
+        </div>
+        <div class="card">
+          <h3>图层命名</h3>
+          <div class="row"><label>命名方式</label><div class="fld"><select class="ctl">
+            <option>用那句话的文字（好找）</option><option>前缀 + 序号</option></select></div></div>
+          <div class="row"><label>前缀</label><div class="fld"><input class="ctl" value="字幕">
+            </div></div>
+        </div>
+      </div>
+
+      <div class="grp" data-p="sub" data-g="look">
+        <div class="card moved">
+          <h3>动画预设</h3>
+          <div class="row"><label>搜索</label><div class="fld"><input class="ctl" placeholder="预设名 / 分类 / 拼音，如 dzj、飞入"></div></div>
+          <div class="row"><label>预设</label><div class="fld"><select class="ctl"><option>（读取中…）</option></select>
+            <button class="btn ghost" style="margin-left:4px">★</button></div></div>
+          <div class="btns">
+            <button class="btn">浏览预设文件…</button>
+            <button class="btn ghost">打开预设文件夹</button>
+          </div>
+          <label class="chk"><input type="checkbox" checked> 短句不加动画预设
+
+            <span style="color:var(--warn);font-size:10.5px">本轮从「人声分离」页搬来</span></label>
+          <p class="hint">句长 &lt; 0.6 s 且短于动画时长时跳过，两个字也不被搅碎。</p>
+        </div>
+        <div class="card">
+          <h3>字体</h3>
+          <div class="row"><label>搜索</label><div class="fld"><input class="ctl" placeholder="名称 / 拼音 / 首字母，如 ruizi、华文"></div></div>
+          <div class="row"><label>字体</label><div class="fld"><select class="ctl"><option>（读取中…）</option></select>
+            <button class="btn ghost" style="margin-left:4px">★</button></div></div>
+          <div class="btns">
+            <button class="btn ghost">从选中图层拾取</button>
+            <button class="btn ghost">重新读取</button>
+          </div>
+        </div>
+        <div class="card">
+          <h3>图层组织</h3>
+          <div class="row"><label>图层模式</label><div class="fld"><select class="ctl">
+            <option>每句一层（推荐）</option><option>全部文字放一层</option></select></div></div>
+        </div>
+      </div>
+
+      <div class="grp" data-p="sub" data-g="pos">
+        <div class="card">
+          <h3>字幕位置</h3>
+          <div class="alignwrap">
+            <div class="grid9">
+              <button title="左上"></button><button title="上中"></button><button title="右上"></button>
+              <button title="左中"></button><button title="正中"></button><button title="右中"></button>
+              <button title="左下"></button><button class="on" title="下中"></button><button title="右下"></button>
+            </div>
+            <div class="alignhint">
+              <b>下居中</b>
+              <span>默认位置。避开画面主体，横屏混剪最常用的一种。</span>
+            </div>
+          </div>
+          <p class="hint">位置写进图层锚点，之后手动挪动也不打架。</p>
+        </div>
+
+        <div class="card">
+          <h3>微调与边距</h3>
+          <div class="pair3">
+            <div><label>水平</label><input class="ctl" value="0"></div>
+            <div><label>垂直</label><input class="ctl" value="-8"></div>
+            <div><label>边距</label><input class="ctl" value="10"><span style="color:var(--fg-hint);font-size:10.5px">%</span></div>
+          </div>
+          <p class="hint">偏移按像素（正数向右 / 向下），边距按画面短边算。
+            </p>
+        </div>
+
+        <div class="card">
+          <h3>多字幕位置对齐</h3>
+          <div class="pair2">
+            <div><label>行距</label><input class="ctl" value="1.2"></div>
+            <div><label>最大行数</label><input class="ctl" value="2"></div>
+          </div>
+          <p class="hint">太长要折行时，控制占几行、行间距多少。</p>
+        </div>
+      </div>
+
+      <div class="grp" data-p="sub" data-g="fix">
+        <div class="card">
+          <h3>体检与修复</h3>
+          <div class="btns">
+            <button class="btn">检查字幕是否可见</button>
+            <button class="btn ghost">修复动画关键帧错位</button>
+          </div>
+          <p class="hint">字幕「看不见」通常是字色和背景撞了；关键帧错位多由改帧率引起。</p>
+        </div>
+        <div class="card">
+          <h3>重新建层</h3>
+          <div class="btns"><button class="btn ghost">用已有字幕建图层</button></div>
+          <p class="hint">不改识别结果，只拿磁盘上已有的 .srt/.json 重放进 AE。</p>
+        </div>
+      </div>
+
+      <!-- ============ ④ 模型与引擎 ============ -->
+      <div class="grp" data-p="eng" data-g="asr">
+        <div class="card">
+          <h3>识别引擎</h3>
+          <div class="row"><label>引擎档位</label><div class="fld"><select class="ctl">
+            <option>本地 Whisper（免费 · 离线）</option>
+            <option>腾讯云 / OpenAI 兼容</option></select></div></div>
+          <p class="hint">⚠ 选云端引擎会把音频上传给服务商。请勿处理机密内容。</p>
+        </div>
+        <div class="card">
+          <h3>密钥</h3>
+          <div class="row"><label>密钥</label><div class="fld"><input class="ctl" type="password" placeholder="粘贴服务商的密钥"></div></div>
+          <div class="btns">
+            <button class="btn ghost">测试密钥</button>
+            <button class="btn ghost">去申请密钥</button>
+          </div>
+        </div>
+        <div class="card">
+          <h3>高级</h3>
+          <div class="row"><label>模型</label><div class="fld"><select class="ctl"><option>留空用引擎默认</option></select></div></div>
+          <div class="row"><label>服务地址</label><div class="fld"><input class="ctl" placeholder="留空用默认；自建服务才需要填"></div></div>
+          <label class="chk"><input type="checkbox" checked> 允许按静音切块识别</label>
+          <p class="hint">高级项不再藏进折叠框，改成常显小节，不用猜里面有没有。</p>
+        </div>
+      </div>
+
+      <div class="grp" data-p="eng" data-g="local">
+        <div class="card">
+          <h3>本地 Whisper</h3>
+          <div class="row"><label>模型档位</label><div class="fld"><select class="ctl">
+            <option>large-v3-turbo（1.51 GB · 当前）</option>
+            <option>large-v3-q5_0（1.01 GB）</option>
+            <option>large-v3（2.88 GB · 最准）</option></select></div></div>
+          <div class="row"><label>运行时</label><div class="fld"><select class="ctl">
+            <option>CUDA（RTX 显卡 · 约 429 MB）</option><option>CPU</option></select></div></div>
+          <div class="btns">
+            <button class="btn">下载模型</button>
+            <button class="btn ghost">打开模型目录</button>
+            <button class="btn ghost">清理模型</button>
+          </div>
+          <label class="chk"><input type="checkbox" checked> 使用 GPU（N 卡快十几倍）</label>
+          <p class="hint">下载支持断点续传；单连接只有几十 KB/s，耐心等。</p>
+        </div>
+      </div>
+
+      <!-- ============ ⑤ 设置 ============ -->
+      <div class="grp" data-p="set" data-g="path">
+        <div class="card">
+          <h3>输出位置</h3>
+          <div class="row"><label>输出目录</label><div class="fld"><input class="ctl" placeholder="留空则跟随工程目录"></div></div>
+          <label class="chk"><input type="checkbox"> 保留中间音频（排障用）</label>
+        </div>
+        <div class="card">
+          <h3>时长限制</h3>
+          <label class="chk" style="margin-top:0"><input type="checkbox" checked> 限制单次处理时长
+            </label>
+          <div class="row" style="margin-top:6px"><label>上限</label><div class="fld"><input class="ctl" type="number" value="10"> 分钟</div></div>
+          <p class="hint">防止误点一个长素材后卡很久。</p>
+        </div>
+      </div>
+
+      <div class="grp" data-p="set" data-g="diag">
+        <div class="card">
+          <h3>环境检测</h3>
+          <div class="status" style="border:none;background:none;padding:0">
+            <span class="dot"></span><span class="v">本地引擎就绪（Node · ffmpeg · whisper.cpp）</span>
+          </div>
+          <div class="row" style="margin-top:7px"><label>运行路径</label><div class="fld"><input class="ctl" placeholder="留空自动检测（需 18 及以上）"></div></div>
+          <div class="btns">
+            <button class="btn ghost">重新检测环境</button>
+            <button class="btn ghost">跑自检</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="grp" data-p="set" data-g="gen">
+        <div class="card">
+          <h3>维护</h3>
+          <div class="btns">
+            <button class="btn ghost">释放内存</button>
+            <button class="btn ghost">清理中间文件</button>
+            <button class="btn ghost">恢复默认</button>
+          </div>
+          <p class="hint">释放内存不结束任何进程；清理删到回收站，可还原。</p>
+        </div>
+        <div class="card">
+          <h3>关于</h3>
+          <p class="hint" style="margin:0">Noniika v1.0.0 · 免费使用许可 v1.0<br>
+            作者 𝙁𝙖𝙙𝙚 · 面板「♥」可自愿赞助</p>
+        </div>
+      </div>
+
+    </main>
+  </div>
+
+  <!-- ============================ 右：设计说明 ============================ -->
+    <div class="doc">
+    <h2>新版信息架构（IA）· 分类依据与层级</h2>
+    <p>目标：<b>让每个功能都能被「想用它时的那个念头」直接找到</b>，不靠折叠框藏东西。</p>
+
+    <div class="legend">
+      <span><i class="swatch" style="background:#4a9eff"></i> 一级导航（常显）</span>
+      <span><i class="swatch" style="background:#efc869"></i> 本轮新增 / 搬家</span>
+    </div>
+
+    <h4>一、分类依据：5 条规则</h4>
+    <ul>
+      <li><b>按「任务」分一级，不按「代码模块」分。</b> 你想的是"我要出字幕"，不是"我要改 asr.js 的参数"。</li>
+      <li><b>一个功能只有一个「家」。</b> 其他页面若需要它，只放<b>跳转入口</b>，绝不复制一份控件（复制必然导致两处不一致）。</li>
+      <li><b>动作跟着对象走。</b> 「清理模型」紧挨「下载模型」、「测试密钥」紧挨密钥框，不集中到一个「清理」页让你来回跳。</li>
+      <li><b>二级用「可见的分段标签」，不用折叠框。</b> 折叠框的标题就是一道墙：不知道里面有没有你要的东西，等于没有。</li>
+      <li><b>层级恒定两级。</b> 再点也不会更深，所以「返回」这个动作被彻底消灭。</li>
+    </ul>
+
+    <h4>二、菜单层级结构（5 个一级 / 14 个二级）</h4>
+    <div class="tree"><b>顶栏</b>  𝙉𝙤𝙣𝙞𝙞𝙠𝙖 · v1.0.0 · ♥ · ⚙
+<b>├─ 1 工作台</b>            <i>「我就是要出字幕」</i>
+<b>│  ├─ 执行</b>              状态条 · 运行进度五步 · 生成字幕 / 只分离 · 建层开关 · 快捷入口
+<b>│  ├─ 校对</b> <i>（本轮新增）</i>   逐条核对文字 · 时间码定位 · 确认落轨 / 重新识别
+<b>│  └─ 结果与日志</b>        产物 chips · 打开目录 · 运行日志
+<b>├─ 2 人声分离</b>          <i>「素材有 BGM，识别不准」</i>
+<b>│  ├─ 分离设置</b>          开关 · 输出轨道 · 模型 · 格式 · 保留人声
+<b>│  └─ 运行环境</b>          依赖检查 / 一键安装 · 模型下载 / 清理 · GPU · Python 路径
+<b>├─ 3 字幕</b>              <i>「字幕长什么样、放在哪」</i>
+<b>│  ├─ 切分与文本</b>        每条字数 · 语音校正 · 丢弃误识别 · 去标点 · 图层命名
+<b>│  ├─ 外观与动画</b>        预设 · 字体 · 短句跳过 · 图层模式
+<b>│  ├─ 位置与排版</b> <i>（本轮新增）</i>  九宫格对齐 · 水平 / 垂直偏移 · 安全边距 · 行距 / 最大行数
+<b>│  └─ 检查与修复</b>        可见性检查 · 关键帧修复 · 用已有字幕重建
+<b>├─ 4 模型与引擎</b>        <i>「换引擎、下模型、填密钥」</i>
+<b>│  ├─ 识别引擎</b>          档位 · 密钥 · 测试 · 高级（模型 / 地址 / 分块）
+<b>│  └─ 本地模型</b>          模型档位 · 运行时 · 下载 / 打开目录 / 清理 · GPU
+<b>└─ 5 设置</b>              <i>「路径、诊断、杂项」</i>
+<b>   ├─ 输出与路径</b>        输出目录 · 保留中间音频 · 时长上限
+<b>   ├─ 环境诊断</b>          Node 路径 · 重新检测 · 跑自检
+<b>   └─ 通用</b>              释放内存 · 清理中间文件 · 恢复默认 · 关于</div>
+
+    <h4>三、本轮（10-01）四处改动</h4>
+    <table class="doc-t">
+      <tr><th>改动</th><th>为什么</th></tr>
+      <tr><td class="good"><b>新增 工作台 › 校对</b></td><td>识别完<b>不再直接落轨</b>，先停下来让你核对文字并就地改错</td></tr>
+      <tr><td class="good"><b>新增 字幕 › 位置与排版</b></td><td>字幕放哪儿以前只能建完层在 AE 里手动挪，现在写进图层锚点</td></tr>
+      <tr><td class="bad"><b>删除 字幕 › 效果预览</b></td><td>按你的要求移除</td></tr>
+      <tr><td><b>进度 4 步改 5 步</b></td><td>「校对」成为流程里的正式一步，不再是隐藏动作</td></tr>
+    </table>
+
+    <h4>四、为什么把「校对」做成流程里的一步</h4>
+    <p>以前是「识别完直接建层」，错了只能回时间线一层层改文字。现在把它拆成两步，理由有三条：</p>
+    <ul>
+      <li><b>改在插件里，比改在时间线上便宜太多。</b> 一处在列表里改完，落轨时就是对的。</li>
+      <li><b>落轨前是可逆的。</b> 确认之前时间线上什么都不动，改废了也不留脏图层。</li>
+      <li><b>它是「进度」的一部分，不是弹窗。</b> 做成工作台的二级页而不是浮层，你可以先去看别的、回头再来改，进度不会丢。</li>
+    </ul>
+    <p>与之配合，原来那个「识别完成后在 AE 中创建字幕图层」开关改成
+      <b>「校对确认后自动在 AE 中建层」</b>，语义跟着新流程走。</p>
+
+    <h4>五、对称感落在哪</h4>
+    <table class="doc-t">
+      <tr><th>位置</th><th>对称手法</th></tr>
+      <tr><td>一级 / 二级导航</td><td>等分网格，每个标签同宽（不是按文字长短伸缩）</td></tr>
+      <tr><td>运行进度五步</td><td>5 等分网格，横向严格均分</td></tr>
+      <tr><td>校对统计条</td><td>3 等分（总条数 / 已改 / 低置信）</td></tr>
+      <tr><td>校对列表每行</td><td>时间码列定宽 34px + 文本列自适应，行与行左边线对齐</td></tr>
+      <tr><td>确认 / 重新识别</td><td>两按钮等宽并排</td></tr>
+      <tr><td>水平 / 垂直偏移</td><td>两列等宽成对</td></tr>
+      <tr><td>字幕九宫格</td><td>3×3，最严格的对称</td></tr>
+    </table>
+    <p>对称的做法是<b>等分网格</b>（<code>grid-template-columns: repeat(N, 1fr)</code>），
+      不是靠 padding 凑。这样窗口宽度变化时，对称关系不会被破坏。</p>
+
+    <h4>六、与 09-27 设计上下文的关系</h4>
+    <p><code>design/UI设计上下文_Kimi-K3.md</code> 是上一轮设计的「唯一事实来源」。本方案<b>继承它的红线，一条不动</b>：</p>
+    <ul>
+      <li><b>不删任何现有功能与配置项</b>：这是<b>搬家</b>不是删减，原型里每个控件都标了原 id，逐一可对照。</li>
+      <li><b>不换风格，只调层次</b>：配色 token / 字体 / <code>color-scheme: dark</code> 全部沿用。</li>
+      <li>花体字符 𝙉𝙤𝙣𝙞𝙞𝙠𝙖 只用于 HTML 界面，不进 .bat 与文件名。</li>
+    </ul>
+    <table class="doc-t">
+      <tr><th>09-27 记录的痛点</th><th>落在哪</th></tr>
+      <tr><td>P1 不知道当前用哪个引擎 / 模型</td><td>工作台 › 执行 ·「引擎状态条」</td></tr>
+      <tr><td>P3 只给百分比，不知走到哪步</td><td>工作台 › 执行 ·「运行进度」五步</td></tr>
+      <tr><td>P4 样式改完看不到效果</td><td class="bad">本轮按你的要求撤掉（改为校对文字，见第四节）</td></tr>
+      <tr><td>P5 环境状态难扫</td><td>人声分离 › 运行环境 / 设置 › 环境诊断</td></tr>
+      <tr><td>P6 密钥粘贴无法核对</td><td>模型与引擎 › 识别引擎（密钥框带「显示」）</td></tr>
+    </table>
+
+
+    <h4>七、控件 id 对照（落地时逐个核对用）</h4>
+    <details class="maplist">
+      <summary>展开对照表（共 60+ 项，界面里已隐藏这些英文 id）</summary>
+      <div class="tree" style="margin-top:8px">
+<b>工作台 › 执行</b>
+  btnRefresh 刷新 · btnRun 生成字幕 · btnSeparate 只分离人声 · createLayers 校对后建层
+<b>工作台 › 校对</b>（新增）
+  btnCommit 确认并落轨 · btnRedo 重新识别
+<b>工作台 › 结果与日志</b>
+  chipSrt / chipJson / chipTxt 产物 · btnOpenOut 打开目录
+<b>人声分离 › 分离设置</b>
+  uvrOn 启用分离 · uvrTarget 输出轨道 · uvrModel 分离模型 · uvrFormat 输出格式 · uvrKeep 保留人声
+<b>人声分离 › 运行环境</b>
+  btnUvrCheck 检查依赖 · btnUvrInstall 一键安装 · btnUvrModel 下载模型 · btnCleanModels 清理模型
+  uvrGpu 显卡加速 · uvrPython Python 路径
+<b>字幕 › 切分与文本</b>
+  maxChars 每条上限 · snapSpeech 语音校正 · dropSuspect 丢弃误识别 · stripPunct 去标点
+  nameMode 命名方式 · subPrefix 前缀
+<b>字幕 › 外观与动画</b>
+  mode 图层模式 · presetQuery / presetSelect / btnFavPreset 预设 · btnPresetFile / btnPresetDir
+  skipPresetShort 短句跳过（本轮搬家） · fontQuery / fontSelect / btnFavFont 字体
+  btnPickFont 拾取 · btnFontRefresh 重新读取
+<b>字幕 › 位置与排版</b>（新增）
+  posX / posY 偏移 · safeArea 安全边距 · lineHeight 行距 · maxLines 最大行数
+<b>字幕 › 检查与修复</b>
+  btnSubCheck 可见性检查 · btnFixKeys 关键帧修复 · btnRebuild 用已有字幕重建
+<b>模型与引擎 › 识别引擎</b>
+  asrProfile 档位 · asrApiKey / btnKeyEyeApi 密钥 · asrSecretId / asrSecretKey 腾讯云
+  btnAsrTest 测试密钥 · btnAsrConsole 去申请 · asrModel / asrModelPick 模型
+  asrBaseUrl 服务地址 · asrChunk 按静音切块
+<b>模型与引擎 › 本地模型</b>
+  localModel 模型档位 · localRuntime 运行时 · btnLocalModel 下载 · btnLocalDir 打开目录
+  btnCleanLocal 清理 · localGpu 显卡
+<b>设置 › 输出与路径</b>
+  outDir 输出目录 · keepAudio 保留中间音频 · limitOn / limitMin 时长上限 · btnTest 试导出
+<b>设置 › 环境诊断</b>
+  nodePath 运行路径 · btnProbe 重新检测 · btnSelfTest 跑自检
+<b>设置 › 通用</b>
+  btnFreeMem 释放内存 · btnCleanFiles 清理中间文件 · btnReset 恢复默认</div>
+    </details>
+
+    <p style="margin-top:12px;color:#8b9096;font-size:11.5px">
+      ← 左侧可直接点击：一级标签切换板块，二级分段切换分组。<br>
+      地址栏支持深链：<code>…原型.html#work/check</code> 直达「工作台 › 校对」。
+    </p>
+  </div>
+
+</div>
+
+<script>
+  // 一级 → 二级分组映射
+  const GROUPS = {
+    work: [['run', '执行'], ['check', '校对'], ['out', '结果与日志']],
+    sep:  [['cfg', '分离设置'], ['env', '运行环境']],
+    sub:  [['text', '切分与文本'], ['look', '外观与动画'], ['pos', '位置与排版'], ['fix', '检查与修复']],
+    eng:  [['asr', '识别引擎'], ['local', '本地模型']],
+    set:  [['path', '输出与路径'], ['diag', '环境诊断'], ['gen', '通用']]
+  };
+
+  const lv1 = document.getElementById('lv1');
+  const lv2 = document.getElementById('lv2');
+  const main = document.getElementById('main');
+
+  function show(page, grp, sync) {
+    if (!GROUPS[page]) page = 'work';
+    // 一级选中态
+    lv1.querySelectorAll('button').forEach(b => b.classList.toggle('on', b.dataset.p === page));
+    // 二级标签重建
+    const gs = GROUPS[page];
+    if (!grp || !gs.some(g => g[0] === grp)) grp = gs[0][0];
+    // 地址栏同步（可深链：xxx.html#sub/look）
+    if (sync !== false) location.hash = '#' + page + '/' + grp;
+    lv2.innerHTML = gs.map(([id, name]) =>
+      `<button data-g="${id}" class="${id === grp ? 'on' : ''}">${name}</button>`).join('');
+    // 内容显隐
+    main.querySelectorAll('.grp').forEach(el => {
+      el.classList.toggle('on', el.dataset.p === page && el.dataset.g === grp);
+    });
+    main.scrollTop = 0;
+  }
+
+  lv1.addEventListener('click', e => {
+    const b = e.target.closest('button[data-p]');
+    if (b) show(b.dataset.p);
+  });
+  lv2.addEventListener('click', e => {
+    const b = e.target.closest('button[data-g]');
+    if (b) show(lv1.querySelector('button.on').dataset.p, b.dataset.g);
+  });
+  // 页面内的「跳转入口」：只切页，不复制控件
+  main.addEventListener('click', e => {
+    const b = e.target.closest('button[data-jump]');
+    if (b) show(b.dataset.jump);
+  });
+
+  // 地址栏 → 界面（支持直接打开某板块，如 #sub/look）
+  window.addEventListener('hashchange', () => {
+    const [p, g] = decodeURIComponent(location.hash.slice(1)).split('/');
+    show(p, g, false);
+  });
+  const [ip, ig] = decodeURIComponent(location.hash.slice(1)).split('/');
+  show(ip || 'work', ig, false);
+</script>
+</body>
+</html>

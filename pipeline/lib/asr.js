@@ -47,6 +47,15 @@ export {
   listModels as listAsrModels,
   ping as pingAsr,
 } from "./providers/index.js";
+// 本地引擎（whisper.cpp）：环境自检 + 下载（二进制 / 模型权重）。
+// 刻意单独走这个出口：它们碰的是**本机文件与下载**，跟「云端密钥」完全无关。
+export {
+  status as localAsrStatus,
+  fetchWhisper as localFetchWhisper,
+  fetchModel as localFetchModel,
+  VARIANTS as localVariants,
+  DEFAULT_VARIANT as localDefaultVariant,
+} from "./providers/local.js";
 
 /** 给面板用的默认值（改这里就能改默认引擎） */
 export const DEFAULTS = { providerId: DEFAULT_PROVIDER, profileId: DEFAULT_PROFILE };

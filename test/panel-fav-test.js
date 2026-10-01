@@ -61,6 +61,8 @@ const code = [
   slice("renderFontOptions"),
   slice("renderPresetOptions"),
   slice("showPage"),
+  slice("groupsOf"),
+  slice("showGroup"),
   slice("fontLabelOf"),
   slice("pickFontsByQuery"),
   slice("applyFontRes"),
@@ -101,6 +103,10 @@ function mkNode(tag) {
     appendChild(c) { n.children.push(c); return c; },
     insertBefore(c) { n.children.unshift(c); return c; },
     addEventListener(t, f) { n._l[t] = f; },
+    // v0.9.3：main.js 会按选择器找分组容器。真实 CEF 里有这些方法，
+    // stub 只关心收藏与切页动画，给空实现即可。
+    querySelectorAll() { return []; },
+    querySelector() { return null; },
     get firstChild() { return n.children[0] || null; }
   };
   return n;
@@ -156,7 +162,8 @@ function makeEnv() {
     btnFavFont: mkNode("button"),
     btnFavPreset: mkNode("button")
   };
-  const pages = { pageHome: mkNode("div"), pageStyle: mkNode("div") };
+  const pages = { pageHome: mkNode("div"), pageUvr: mkNode("div"),
+                  pageStyle: mkNode("div"), pageEng: mkNode("div"), pageSet: mkNode("div") };
 
   const sandbox = {
     LS: undefined,
@@ -172,9 +179,12 @@ function makeEnv() {
     },
     document: {
       createElement: mkNode,
-      getElementById(id) { return pages[id] || null; }
+      getElementById(id) { return pages[id] || null; },
+      querySelectorAll() { return []; },
+      querySelector() { return null; }
     },
-    PAGE_IDS: { home: "pageHome", style: "pageStyle" },
+    PAGE_IDS: { work: "pageHome", sep: "pageUvr", sub: "pageStyle",
+                eng: "pageEng", set: "pageSet" },
     el: els,
     log() {},
     checkUvrDeps() {},
@@ -403,7 +413,7 @@ function check(name, cond, extra) {
   const { api, sandbox, pages, ctl } = makeEnv();
   sandbox.LS = { favFonts: "aesub.favFonts", favPresets: "aesub.favPresets" };
 
-  api.showPage("style");
+  api.showPage("sub");
   check("⑦ 进二级页：该页被点亮",
     pages.pageStyle.classList.contains("on") && !pages.pageHome.classList.contains("on"));
   check("⑦ 进二级页用的是 pgIn 动画",
@@ -413,20 +423,20 @@ function check(name, cond, extra) {
     String(pages.pageStyle.style.animation).indexOf(".19s") >= 0,
     pages.pageStyle.style.animation);
 
-  api.showPage("home");
-  check("⑦ 回首页：换页方向相反（pgBack）",
+  api.showPage("work");
+  check("⑦ 回工作台：换页方向相反（pgBack）",
     String(pages.pageHome.style.animation).indexOf("pgBack") >= 0,
     pages.pageHome.style.animation);
   check("⑦ 每次切页都调用了 scrollTo(0,0)", (ctl.scrolled || 0) === 2, ctl.scrolled);
 
   // 连续切同一页也要能重播（靠「先清 none 再设」）
-  api.showPage("style");
+  api.showPage("sub");
   const anim = String(pages.pageStyle.style.animation);
   check("⑦ 再次进入仍会重设动画（不是残留上一次的值）",
     anim.indexOf("pgIn") >= 0 && anim.indexOf("none") < 0, anim);
 
   api.showPage("不存在的页");
-  check("⑦ 未知页名回落到首页", pages.pageHome.classList.contains("on"));
+  check("⑦ 未知页名回落到工作台", pages.pageHome.classList.contains("on"));
 }
 
 /* ====================================== ⑧ 拼音搜索（字体挑选 + 预设过滤） */

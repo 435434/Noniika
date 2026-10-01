@@ -5,11 +5,11 @@
  * 导出音频时区间起点 = 3 秒，于是"导出文件的 0 秒"对应"合成第 3 秒"，
  * 分离出的人声必须按这个偏移落回去 —— 否则人声整体错位。
  */
-var OUT = "C:/Users/kunku/Desktop/AE字幕插件/test/output/ae-offset-result.json";
-var LOG = "C:/Users/kunku/Desktop/AE字幕插件/test/output/ae-offset-progress.txt";
+var OUT = "E:/项目文件/agent/ae字幕插件/test/output/ae-offset-result.json";
+var LOG = "E:/项目文件/agent/ae字幕插件/test/output/ae-offset-progress.txt";
 var BRIDGE = "C:/Users/kunku/AppData/Roaming/Adobe/CEP/extensions/com.aesub.autosubtitle/jsx/ae-bridge.jsx";
-var VIDEO = "C:/Users/kunku/Desktop/AE字幕插件/test/input/无上光荣.mp4";
-var VOCALS = "C:/Users/kunku/Desktop/AE字幕插件/test/output/_人声分离/混剪测试_人声.wav";
+var VIDEO = "E:/项目文件/agent/ae字幕插件/test/input/无上光荣.mp4";
+var VOCALS = "E:/项目文件/agent/ae字幕插件/test/output/_人声分离/混剪测试_人声.wav";
 
 var marks = [], rep = { ok: false, errors: [], cases: [] };
 function mark(m) {

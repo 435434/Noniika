@@ -3,11 +3,11 @@
  *   sourceLayer / sourceLayerName / sourceLayerIsVideo / sourceLayerIsSeparatedVocals
  * 面板就是靠这几个字段决定"弹不弹询问框、要不要跳过分离"的。
  */
-var OUT = "C:/Users/kunku/Desktop/AE字幕插件/test/output/ae-sel-result.json";
-var LOG = "C:/Users/kunku/Desktop/AE字幕插件/test/output/ae-sel-progress.txt";
+var OUT = "E:/项目文件/agent/ae字幕插件/test/output/ae-sel-result.json";
+var LOG = "E:/项目文件/agent/ae字幕插件/test/output/ae-sel-progress.txt";
 var BRIDGE = "C:/Users/kunku/AppData/Roaming/Adobe/CEP/extensions/com.aesub.autosubtitle/jsx/ae-bridge.jsx";
-var VIDEO = "C:/Users/kunku/Desktop/AE字幕插件/test/input/无上光荣.mp4";
-var VOCALS = "C:/Users/kunku/Desktop/AE字幕插件/test/output/_人声分离/混剪测试_人声.wav";
+var VIDEO = "E:/项目文件/agent/ae字幕插件/test/input/无上光荣.mp4";
+var VOCALS = "E:/项目文件/agent/ae字幕插件/test/output/_人声分离/混剪测试_人声.wav";
 
 var marks = [], rep = { ok: false, errors: [], cases: [] };
 function mark(m) {

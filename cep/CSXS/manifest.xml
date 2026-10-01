@@ -11,12 +11,12 @@
 <ExtensionManifest
 	Version="5.0"
 	ExtensionBundleId="com.aesub.autosubtitle"
-	ExtensionBundleVersion="0.9.1"
+	ExtensionBundleVersion="1.0.0"
 	ExtensionBundleName="Noniika"
 	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
 
 	<ExtensionList>
-		<Extension Id="com.aesub.autosubtitle.panel" Version="0.9.1" />
+		<Extension Id="com.aesub.autosubtitle.panel" Version="1.0.0" />
 	</ExtensionList>
 
 	<ExecutionEnvironment>

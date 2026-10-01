@@ -817,3 +817,198 @@ label.chk { line-height: 1.5; }
   .engbar .t { white-space: normal; }
   .steps .st { font-size: 9px; }
 }
+
+
+/* ============================================================================
+ * v0.9.2 · 清理确认弹窗重做（只加不删）
+ *   概览行 .cfmHead / 工具条 .cfmTools / 整行可点的清单 label.cleanGroup / 小号按钮 .tiny
+ * ============================================================================ */
+.cfmHead {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 8px;
+  align-items: baseline;
+  padding: 6px 9px 7px;
+  border: 1px solid #5a4416;
+  background: #3a3117;
+  border-radius: 7px;
+  font-size: 11.5px;
+  color: var(--warn);
+}
+.cfmHead .chMain { flex: 1 1 auto; }
+.cfmHead .chMain b { color: #ffd98a; font-weight: 500; }
+.cfmHead .chSub { font-size: 10.5px; color: #b99a52; }
+
+/* 工具条与下方清单之间留出距离：别贴着第一条 */
+.cfmTools { display: flex; align-items: center; gap: 6px; margin: 8px 0 12px; }
+.cfmTools .spacer { flex: 1 1 auto; }
+.cfmTip { font-size: 10.5px; color: var(--fg-hint); }
+
+button.tiny { font-size: 10.5px; padding: 3px 8px; border-radius: 6px; }
+
+/* 清单整行可点：点名字、点说明都能勾上 */
+label.cleanGroup { cursor: pointer; }
+label.cleanGroup:hover { background: #2f2f2f; }
+label.cleanGroup.on { border-left: 2px solid #4a86d8; padding-left: 5px; }
+label.cleanGroup.on .cgName { color: #dceafc; }
+label.cleanGroup input[type="checkbox"] { margin-top: 1px; }
+
+/* 名称靠左、体积靠右，说明换到下一行 */
+.cgTop { display: flex; align-items: baseline; gap: 8px; }
+.cgTop .cgName { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.cgTop .cgSize { flex: 0 0 auto; white-space: nowrap; margin-left: 0; }
+
+
+/* ============================================================================
+   v1.0.0 · UI 重构（2026-10-01）
+   一级 5 页 + 页内二级分段；圆角三档；微渐变；蓝绿黄三色语义点缀。
+   全部追加在文件末尾，靠顺序覆盖同优先级的旧规则，不动原有声明。
+   ============================================================================ */
+
+/* ---------------------------------------------------------- 一级导航（5 等分） */
+.lv1 {
+  display: grid; grid-template-columns: repeat(5, 1fr);
+  gap: 4px; margin: 2px 0 10px;
+}
+.lv1 button {
+  padding: 7px 2px; background: none; border: 1px solid transparent;
+  border-radius: 8px; color: var(--fg-dim);
+  font: inherit; font-size: 11.5px; cursor: pointer;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.lv1 button:hover { color: var(--fg); background: rgba(255, 255, 255, .045); }
+.lv1 button.on {
+  color: #9ecbff;
+  background: linear-gradient(180deg, #354c66 0%, #2b3d52 100%);
+  border-color: #3f5f82;
+  box-shadow: 0 1px 0 rgba(255, 255, 255, .06) inset, 0 1px 3px rgba(0, 0, 0, .32);
+}
+
+/* ---------------------------------------------------------- 二级导航（页内分段） */
+.lv2 {
+  display: grid; grid-auto-flow: column; grid-auto-columns: 1fr;
+  gap: 3px; padding: 3px; margin-bottom: 8px;
+  background: linear-gradient(180deg, #1f1f1f 0%, #232323 100%);
+  border: 1px solid #333; border-radius: 10px;
+}
+.lv2 button {
+  padding: 6px 3px; background: none; border: 1px solid transparent;
+  border-radius: 7px; color: var(--fg-dim);
+  font: inherit; font-size: 11px; cursor: pointer;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.lv2 button:hover { color: var(--fg); }
+.lv2 button.on {
+  background: linear-gradient(180deg, #3d3d3d 0%, #313131 100%);
+  color: #fff; border-color: #4e4e4e;
+  box-shadow: 0 1px 0 rgba(255, 255, 255, .07) inset, 0 2px 5px rgba(0, 0, 0, .3);
+}
+
+/* ---------------------------------------------------------- 分组显隐 */
+.grp { display: none; }
+.grp.on { display: flex; flex-direction: column; gap: 8px; }
+
+/* ---------------------------------------------------------- 顶栏与页首状态 */
+.topbar { display: flex; align-items: center; justify-content: space-between; gap: 6px; }
+.pgstat { display: flex; justify-content: flex-end; margin: -4px 0 4px; }
+
+/* ---------------------------------------------------------- 圆角体系（三档） */
+section.card, details.card, .card { border-radius: 10px; }
+button, .chip, .badge, .favBtn, .reloadBtn, .chg { border-radius: 7px; }
+.chip, .badge { border-radius: 999px; }
+input, select, textarea { border-radius: 7px; }
+
+/* ---------------------------------------------------------- 微渐变质感 */
+section.card, details.card {
+  background: linear-gradient(180deg, #2f2f2f 0%, #292929 100%);
+  border-color: #383838;
+  box-shadow: 0 1px 0 rgba(255, 255, 255, .035) inset, 0 1px 2px rgba(0, 0, 0, .22);
+}
+.card-title { display: flex; align-items: center; gap: 6px; }
+.card-title::before {
+  content: ""; flex: none; width: 3px; height: 11px; border-radius: 999px;
+  background: linear-gradient(180deg, #5aa9ff 0%, #3f83d6 100%); opacity: .85;
+}
+button.primary {
+  background: linear-gradient(180deg, #5aa9ff 0%, #3f83d6 100%);
+  border-color: #2f6fbd;
+  box-shadow: 0 1px 0 rgba(255, 255, 255, .22) inset, 0 2px 6px rgba(47, 111, 189, .35);
+}
+button:not(.primary):not(.ghost):not(.icon) {
+  background: linear-gradient(180deg, #3d3d3d 0%, #313131 100%);
+  border-color: #474747;
+  box-shadow: 0 1px 0 rgba(255, 255, 255, .05) inset;
+}
+#bar {
+  background: linear-gradient(90deg, #4a9eff 0%, #6ee0c4 100%);
+  border-radius: 999px;
+}
+
+/* ---------------------------------------------------------- 校对（新组件） */
+.cstats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
+.cstats .c {
+  text-align: center; padding: 7px 2px; border-radius: 7px;
+  background: linear-gradient(180deg, #1f1f1f 0%, #232323 100%);
+  border: 1px solid #383838;
+}
+.cstats .c b { display: block; font-size: 15px; font-weight: 600; color: var(--fg); }
+.cstats .c span { font-size: 10.5px; color: var(--fg-dim); }
+.cstats .c.warn b { color: var(--warn); }
+
+.clist { display: flex; flex-direction: column; gap: 4px; max-height: 260px; overflow-y: auto; }
+.cline {
+  display: grid; grid-template-columns: 40px 1fr; gap: 6px; align-items: center;
+  padding: 3px 5px 3px 3px; border-radius: 7px;
+  background: linear-gradient(180deg, #1f1f1f 0%, #232323 100%);
+  border: 1px solid #333; border-left: 2px solid transparent;
+}
+.cline .t {
+  font: 10.5px/1 Consolas, monospace; color: var(--fg-hint);
+  text-align: center; cursor: pointer;
+}
+.cline .t:hover { color: var(--accent); }
+.cline input {
+  width: 100%; padding: 3px 6px; font-size: 11.5px;
+  background: #1c1c1c; color: var(--fg); border: 1px solid #404040;
+}
+.cline.edited { border-left-color: var(--warn); }
+.cline.low input { border-color: #6b5a33; }
+
+.empty {
+  border: 1px dashed #4a4a4a; border-radius: 7px; padding: 16px 10px;
+  text-align: center; color: var(--fg-hint); font-size: 11px; line-height: 1.65;
+}
+
+/* ---------------------------------------------------------- 位置与排版（新组件） */
+.alignwrap { display: grid; grid-template-columns: auto 1fr; gap: 10px; align-items: center; }
+.grid9 {
+  display: grid; grid-template-columns: repeat(3, 32px);
+  grid-template-rows: repeat(3, 26px); gap: 3px;
+}
+.grid9 button {
+  padding: 0; cursor: pointer;
+  /* 底色要比卡片(#2f2f2f)亮或边框要够明显，否则深底上看不见九宫格 */
+  background: #2c2c2c; border: 1px solid #4a4a4a;
+}
+.grid9 button:hover { background: #383838; border-color: #6a6a6a; }
+.grid9 button.on {
+  background: linear-gradient(180deg, #5aa9ff 0%, #3f83d6 100%);
+  border-color: #2f6fbd;
+  box-shadow: 0 1px 0 rgba(255, 255, 255, .22) inset;
+}
+.alignhint b { display: block; color: var(--fg); font-size: 11.5px; margin-bottom: 2px; }
+.alignhint span { color: var(--fg-hint); font-size: 10.5px; line-height: 1.5; }
+
+.triple, .duo { display: grid; gap: 6px; }
+.triple { grid-template-columns: repeat(3, 1fr); }
+.duo { grid-template-columns: repeat(2, 1fr); }
+.triple > div, .duo > div { display: flex; align-items: center; gap: 4px; min-width: 0; }
+.triple label, .duo label { color: var(--fg-dim); font-size: 10.5px; flex: none; }
+.triple input, .duo input { min-width: 0; flex: 1; }
+.triple .u { color: var(--fg-hint); font-size: 10.5px; flex: none; }
+
+/* ---------------------------------------------------------- 窄屏兜底 */
+@media (max-width: 340px) {
+  .lv1 { grid-template-columns: repeat(3, 1fr); }
+  .lv2 { grid-auto-flow: row; grid-auto-columns: auto; grid-template-columns: repeat(2, 1fr); }
+}

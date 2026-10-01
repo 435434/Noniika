@@ -13,8 +13,8 @@
  * ============================================================ */
 
 var BRIDGE = "C:/Users/kunku/AppData/Roaming/Adobe/CEP/extensions/com.aesub.autosubtitle/jsx/ae-bridge.jsx";
-var OUT = "C:/Users/kunku/Desktop/AE字幕插件/test/output/ae-naming-result.json";
-var PROG = "C:/Users/kunku/Desktop/AE字幕插件/test/output/ae-naming-progress.txt";
+var OUT = "E:/项目文件/agent/ae字幕插件/test/output/ae-naming-result.json";
+var PROG = "E:/项目文件/agent/ae字幕插件/test/output/ae-naming-progress.txt";
 
 function log(s) {
   var f = new File(PROG); f.encoding = "UTF-8";

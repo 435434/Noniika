@@ -40,7 +40,7 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 OUT = os.path.join(ROOT, "插件打包")
 PLUGIN_NAME = "com.aesub.autosubtitle"
 PKG = os.path.join(OUT, PLUGIN_NAME)
-VERSION = "0.9.1"
+VERSION = "0.9.2"
 NODE_EXE = os.environ.get("AESUB_NODE") or shutil.which("node") or "node"
 
 def mb(n): return "%.1f MB" % (n / 1048576.0)

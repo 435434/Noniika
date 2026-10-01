@@ -8,8 +8,8 @@
  *   JSON   : 用户面板实际产出的 _AE字幕输出\合成 1.json
  *   PRESET : 用户在面板里选过的「按单词飞入」
  */
-var OUT = "C:/Users/kunku/Desktop/AE字幕插件/test/output/ae-preset-panel-result.json";
-var LOG = "C:/Users/kunku/Desktop/AE字幕插件/test/output/ae-preset-panel-progress.txt";
+var OUT = "E:/项目文件/agent/ae字幕插件/test/output/ae-preset-panel-result.json";
+var LOG = "E:/项目文件/agent/ae字幕插件/test/output/ae-preset-panel-progress.txt";
 
 var JSPATH   = "C:/Users/kunku/AppData/Local/Temp/_AE字幕输出/合成 1.json";
 var PRESET   = "D:/softwore/app/AE2025/Adobe After Effects 2025/Support Files/Presets/Text/Multi-Line/按单词飞入.ffx";

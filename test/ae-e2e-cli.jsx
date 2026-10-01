@@ -14,7 +14,7 @@
  * 用法：AfterFX.exe -r ae-e2e-cli.jsx
  */
 
-var ROOT   = "C:/Users/kunku/Desktop/AE字幕插件";
+var ROOT   = "E:/项目文件/agent/ae字幕插件";
 var OUT    = ROOT + "/test/output/ae-e2e-result.json";
 var PROG   = ROOT + "/test/output/ae-e2e-progress.txt";
 var BRIDGE = "C:/Users/kunku/AppData/Roaming/Adobe/CEP/extensions/com.aesub.autosubtitle/jsx/ae-bridge.jsx";

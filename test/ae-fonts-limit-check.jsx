@@ -12,7 +12,7 @@
  * 产出：test/output/font-limit.json
  */
 (function () {
-  var ROOT = "C:/Users/kunku/Desktop/AE字幕插件";
+  var ROOT = "E:/项目文件/agent/ae字幕插件";
   var BRIDGE = ROOT + "/cep/jsx/ae-bridge.jsx";
   var OUT = ROOT + "/test/output/font-limit.json";
 

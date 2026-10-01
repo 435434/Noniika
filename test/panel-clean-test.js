@@ -106,7 +106,12 @@ function makeSandbox(stubs) {
     cfmPerm: { checked: false },
     cfmOk: mkBtn(),
     cfmCancel: mkBtn(),
-    cfmHint: { innerHTML: "" }
+    cfmHint: { innerHTML: "" },
+    // v0.9.2 弹窗重做后新增：概览在顶部（cfmCount / cfmSize），工具条有全选 / 全不选
+    cfmCount: { textContent: "0" },
+    cfmSize: { textContent: "0 B" },
+    cfmAll: mkBtn(),
+    cfmNone: mkBtn()
   };
   const calls = { recycle: [], scanOpts: null, modelsDir: null };
   const sandbox = {
@@ -232,8 +237,10 @@ async function main() {
     check("⑥ 默认勾选前三组（不含字幕、不含锁定的模型）",
       html.indexOf('data-key="mid" checked') >= 0 && html.indexOf('data-key="subs" checked') < 0);
     check("⑥ 模型组标为 locked 且没有勾选框", html.indexOf("cleanGroup locked") >= 0 && html.indexOf('data-key="models"') < 0);
-    check("⑥ 合计行按默认勾选算出 19 项", s.el.cfmBody.querySelector("#cleanTotal").innerHTML.indexOf("19 项") >= 0,
-      s.el.cfmBody.querySelector("#cleanTotal").innerHTML);
+    // v0.9.2 弹窗重做：合计从"列表末尾的 cleanTotal"挪到了顶部概览 cfmCount
+    // （不用滚到底才知道要删多少）—— 断言跟着挪
+    check("⑥ 概览行按默认勾选算出 19 项", String(s.el.cfmCount.textContent).indexOf("19") >= 0,
+      "cfmCount=" + s.el.cfmCount.textContent + " / cfmSize=" + s.el.cfmSize.textContent);
 
     s.el.cfmOk.fire("click");
     await p;

@@ -61,7 +61,9 @@ import {
 } from "./lib/separate.js";
 import {
   DEFAULT_PROFILE, DEFAULT_PROVIDER,
-  listAsrModels, listAsrProfiles, pingAsr, providerLimits, transcribeAudio,
+  listAsrModels, listAsrProfiles,
+  localAsrStatus, localFetchModel, localFetchWhisper, localVariants,
+  pingAsr, providerLimits, transcribeAudio,
 } from "./lib/asr.js";
 import {
   normalizeSegments,
@@ -98,6 +100,9 @@ function parseArgs(argv) {
     secretId: process.env.AESUB_SECRET_ID || null,
     secretKey: process.env.AESUB_SECRET_KEY || null,
     asrModel: process.env.AESUB_ASR_MODEL || null,
+    // 数据目录：本地引擎（whisper.cpp 可执行文件与模型权重）就放在它下面。
+    // 面板起子进程时注入 AESUB_DATA_DIR；命令行也可以 --data-dir 显式给。
+    dataDir: process.env.AESUB_DATA_DIR || null,
     asrBaseUrl: process.env.AESUB_ASR_BASE_URL || null,
     asrLanguage: process.env.AESUB_ASR_LANGUAGE || "zh",
     asrPrompt: null,
@@ -152,6 +157,11 @@ function parseArgs(argv) {
       case "--no-chunk-asr": o.chunkAsr = false; break;
       case "--keep-chunks": o.keepChunks = true; break;
       case "--list-asr": o.listAsr = true; break;
+      case "--local-status": o.localStatus = true; break;
+      case "--local-fetch": o.localFetch = next(); break;   // whisper | model | all
+      case "--local-which": o.localWhich = next(); break;   // cpu | blas | cuda（二进制变体）
+      case "--local-model": o.localModel = next(); break;   // small | medium | large-v3-turbo
+      case "--data-dir": o.dataDir = next(); break;
       case "--asr-ping": o.asrPing = true; break;
       case "--help": case "-h": o.help = true; break;
       default:
@@ -185,6 +195,14 @@ const HELP = `Noniika · 命令行流水线
 
 识别引擎（服务商无关；默认用免费的硅基流动档）：
   --list-asr                     列出全部可用档位（JSON）后退出
+  --local-status                 本地引擎（whisper.cpp）环境自检（JSON）后退出：
+                                 报告可执行文件位置、已下载模型、是否 CUDA 构建。不联网
+  --local-fetch <what>           下本地引擎的东西：whisper（二进制）/ model（权重）/ all
+                                 ⚠ 会联网；进度以 progress JSON 打到 stderr
+  --local-which <v>              二进制变体：cuda（默认·约 429MB）| blas（约 16MB）| cpu（约 4MB）
+  --local-model <m>              权重档位：small | medium（默认）| large-v3-turbo
+  --data-dir <dir>               数据目录（本地引擎的 whisper.cpp 与模型都放它下面）。
+                                 也可用环境变量 AESUB_DATA_DIR
   --asr-ping                     **只测密钥**并顺带拉取"当前可用模型清单"：
                                  不消耗识别额度、不需要 --in。返回里含 models[]
   --asr-provider <id>            openai-compat（默认）/ tencent
@@ -313,6 +331,70 @@ async function main() {
       default: { provider: DEFAULT_PROVIDER, profile: DEFAULT_PROFILE },
       profiles: listAsrProfiles(),
     }) + "\n");
+    return;
+  }
+
+  // ---- 本地引擎（whisper.cpp）环境自检：只查本机文件，不联网、不需要 --in ----
+  if (opts.localStatus) {
+    const st = localAsrStatus({ dataDir: opts.dataDir || null });
+    process.stdout.write(JSON.stringify({
+      ok: !!st.ok,
+      mode: "local-status",
+      dataDir: st.dataDir,
+      exe: st.exe,
+      modelDir: st.modelDir,
+      downloaded: st.downloaded,
+      current: st.current,
+      cuda: st.cuda,
+      models: st.models,
+      detail: st.detail,
+    }) + "\n");
+    return;
+  }
+
+  // ---- 下本地引擎的二进制 / 模型权重（会联网；进度走 stderr 的 progress JSON，面板照常吃）----
+  if (opts.localFetch) {
+    const what = String(opts.localFetch || "all").toLowerCase();
+    const tick = (p) => process.stderr.write(JSON.stringify({ type: "progress", ...p }) + "\n");
+    const dataDir = opts.dataDir || null;
+    (async () => {
+      const out = { ok: true, mode: "local-fetch", what, dataDir: dataDir || "(默认)", items: {} };
+
+      if (what === "whisper" || what === "all") {
+        try {
+          out.items.whisper = await localFetchWhisper({ variant: opts.localWhich || undefined, dataDir, onProgress: tick });
+        } catch (e) {
+          out.ok = false;
+          out.items.whisper = {
+            ok: false, error: String((e && e.message) || e),
+            hint: "变体可选： " + localVariants.map((v) => v.id).join(" / "),
+          };
+        }
+      }
+
+      // 二进制没装成就不接着下模型了：识别跑不起来，白白消耗一两个 G 流量
+      const whisperOk = what === "model" || !!(out.items.whisper && out.items.whisper.ok);
+      if (what === "model" || what === "all") {
+        if (!whisperOk) {
+          out.items.model = { ok: false, error: "whisper.cpp 二进制没就位，先装它再下模型" };
+        } else {
+          try {
+            out.items.model = await localFetchModel({ model: opts.localModel || undefined, dataDir, onProgress: tick });
+          } catch (e) {
+            out.ok = false;
+            out.items.model = { ok: false, error: String((e && e.message) || e) };
+          }
+        }
+      }
+
+      process.stdout.write(JSON.stringify(out) + "\n");
+      if (!out.ok) process.exitCode = 1;
+    })().catch((e) => {
+      process.stdout.write(JSON.stringify({
+        ok: false, mode: "local-fetch", error: String((e && e.message) || e),
+      }) + "\n");
+      process.exitCode = 1;
+    });
     return;
   }
 

@@ -1,6 +1,6 @@
 /* AE 空白字幕复现诊断：同一合成连续两轮建层，逐层 dump 可见性全量数据 */
 (function () {
-  var OUT = "C:/Users/kunku/Desktop/AE字幕插件/test/output";
+  var OUT = "E:/项目文件/agent/ae字幕插件/test/output";
   var PROG = OUT + "/ae-blank-progress.txt";
   var RESULT = OUT + "/ae-blank-result.json";
   var BRIDGE = "C:/Users/kunku/AppData/Roaming/Adobe/CEP/extensions/com.aesub.autosubtitle/jsx/ae-bridge.jsx";

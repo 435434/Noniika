@@ -6,7 +6,7 @@
  * 预设，看哪些会给「位置」加关键帧，并确认这种情况下不再强制居中。
  */
 
-var SCRIPT_DIR = "C:/Users/kunku/Desktop/AE字幕插件";
+var SCRIPT_DIR = "E:/项目文件/agent/ae字幕插件";
 var OUT = SCRIPT_DIR + "/test/output";
 var PROGRESS = OUT + "/ae-preset-pos-progress.txt";
 var REPORT = OUT + "/ae-preset-pos-result.json";
