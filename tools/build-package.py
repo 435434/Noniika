@@ -10,7 +10,7 @@
   ├── 一键安装.bat               ← 装前查 AE 是否装了（只提示），装完提示脚本权限那项必做设置
   ├── 一键卸载.bat               ← 三步各自确认：插件本体 / 数据目录 / 注册表开关
   ├── com.aesub.autosubtitle/     ← 插件本体（含 pipeline 与自带 Node；AE 侧是 .jsxbin）
-  └── Noniika-v0.9.0.zip       ← 便于分发的压缩包
+  └── Noniika-v1.0.0.zip       ← 便于分发的压缩包
 
 精简策略（功能一个不少）：
   · AE 侧桥接层编译成 .jsxbin（Adobe 自家的二进制/混淆格式），明文 jsx 不进包
@@ -40,7 +40,7 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 OUT = os.path.join(ROOT, "插件打包")
 PLUGIN_NAME = "com.aesub.autosubtitle"
 PKG = os.path.join(OUT, PLUGIN_NAME)
-VERSION = "0.9.2"
+VERSION = "1.0.0"
 NODE_EXE = os.environ.get("AESUB_NODE") or shutil.which("node") or "node"
 
 def mb(n): return "%.1f MB" % (n / 1048576.0)
